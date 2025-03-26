@@ -18,7 +18,8 @@ cran_packs <- c(
   "mvtnorm",
   "glue", "ggpubr", "latex2exp", 
   "VGAM", "skewsamp", "rngtools",
-  "ggExtra", "igraph", "geosphere", "egg", "gamlss.dist"
+  "ggExtra", "igraph", "geosphere", "egg", "gamlss.dist",
+  "ggpubr"
 )
 
 # Install missing packages (CRAN + GitHub)
