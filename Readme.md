@@ -1,6 +1,6 @@
 # Extremes of Structural Causal Models
 
-This repository contains code, data, and scripts for experiments on **extremes of structural causal models**.  
+This repository contains code, data, and scripts for experiments of the manuscript **Extremes of structural causal models** (https://arxiv.org/abs/2503.06536).  
 It is organized as an R project, with separate folders for core functions, datasets, analysis scripts, and generated outputs.
 
 ## Structure
