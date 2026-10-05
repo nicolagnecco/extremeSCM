@@ -6,12 +6,12 @@ RNGkind("L'Ecuyer-CMRG")
 # Constants
 ARGS <- commandArgs(trailingOnly = TRUE)
 if (length(ARGS) == 0) {
-  N_WORKERS <- 3
+  N_WORKERS <- 5
 } else {
   N_WORKERS <- as.numeric(ARGS[1])
 }
-RUN_SIMULATIONS <- FALSE
-ALLMETHODS <- FALSE
+RUN_SIMULATIONS <- TRUE
+ALLMETHODS <- TRUE
 SIMULATED <- FALSE
 MODE <- c("subsample", "bootstrap")[1]
 N_REPS <- 50
@@ -22,6 +22,7 @@ TAUS <- c(0.9, .95, 0.975)
 floor((1-TAUS) * SUBSAMPLE_PROP * 4600)
 ALPHAS <- c(0.05)
 B <- 100 # number of trees in random forest for non-extremal methods
+
 DATASETS <- list(
   list("dataset-1", c(12:1)),
   list("dataset-2", c(22:20, 7:1)),
@@ -180,40 +181,63 @@ if (RUN_SIMULATIONS){
         results_tbl <- bind_rows(full_tbl, true_tbl, xpr_tbl)
         
         if (ALLMETHODS){
-          # PCM
-          reg_method <- purrr::partial(ranger_reg_method, num.trees = B)
+          params <- tidyr::crossing(n, taus = c(0, taus))
           
-          ci_test_pcm_ <- purrr::partial(ci_test_pcm, dat = dat, 
-                                         reg_method = reg_method)
-          
-          B_pruned_pcm <- prune_edge_algo(
-            B_full = full_adjmat, prunbl_prs = prunbl_prs,
-            ci_test = ci_test_pcm_, alpha = alpha,
-            base_pruning_algo = purrr::partial(prune_edge_fast, verbose=TRUE),
-            separating_set_selector = mb_selector, shuffle = TRUE
-          )
-          
-          pcm_tbl <- igraph::graph_from_adjacency_matrix(B_pruned_pcm) %>%
-            graph_to_tibble(station_info = station_info) %>% 
-            mutate(method = "PCM")
-          
-          # HSIC
-          ci_test_hsic_ <- purrr::partial(ci_test_hsic, dat = dat, 
-                                          reg_method = reg_method)
-          
-          B_pruned_hsic <- prune_edge_algo(
-            B_full = full_adjmat, prunbl_prs = prunbl_prs,
-            ci_test = ci_test_hsic_, alpha = alpha,
-            base_pruning_algo = purrr::partial(prune_edge_fast, verbose=TRUE),
-            separating_set_selector = mb_selector, shuffle = TRUE
-          )
-          
-          hsic_tbl <- igraph::graph_from_adjacency_matrix(B_pruned_hsic) %>%
-            graph_to_tibble(station_info = station_info) %>% 
-            mutate(method = "HSIC")
+          allmethods_tbl <- purrr::map_dfr(seq_len(nrow(params)), function(i){
+            
+            tau <- params$taus[i]
+            
+            if (tau == 0){
+              dat_k <- dat
+            } else {
+              k <- nrow(data2mpareto(dat, p = tau))
+              idx_k <- sample.int(nrow(dat), size = k, replace = FALSE)
+              dat_k <- dat[idx_k, , drop = FALSE]
+            }
+            
+            k <- nrow(dat_k)
+            
+            
+            # PCM
+            reg_method <- purrr::partial(ranger_reg_method, num.trees = B)
+            
+            ci_test_pcm_ <- purrr::partial(ci_test_pcm, dat = dat_k, 
+                                           reg_method = reg_method)
+            
+            B_pruned_pcm <- prune_edge_algo(
+              B_full = full_adjmat, prunbl_prs = prunbl_prs,
+              ci_test = ci_test_pcm_, alpha = alpha,
+              base_pruning_algo = purrr::partial(prune_edge_fast, verbose=TRUE),
+              separating_set_selector = mb_selector, shuffle = TRUE
+            )
+            
+            pcm_tbl <- igraph::graph_from_adjacency_matrix(B_pruned_pcm) %>%
+              graph_to_tibble(station_info = station_info) %>% 
+              mutate(method = "PCM", k = k, tau = tau)
+            
+            # HSIC
+            ci_test_hsic_ <- purrr::partial(ci_test_hsic, dat = dat_k, 
+                                            reg_method = reg_method)
+            
+            B_pruned_hsic <- prune_edge_algo(
+              B_full = full_adjmat, prunbl_prs = prunbl_prs,
+              ci_test = ci_test_hsic_, alpha = alpha,
+              base_pruning_algo = purrr::partial(prune_edge_fast, verbose=TRUE),
+              separating_set_selector = mb_selector, shuffle = TRUE
+            )
+            
+            hsic_tbl <- igraph::graph_from_adjacency_matrix(B_pruned_hsic) %>%
+              graph_to_tibble(station_info = station_info) %>% 
+              mutate(method = "HSIC", k = k, tau = tau)
+            
+            
+            bind_rows(pcm_tbl, hsic_tbl)
+            
+          })
           
           results_tbl <- results_tbl %>% 
-            bind_rows(pcm_tbl, hsic_tbl)
+            bind_rows(allmethods_tbl)
+
         }
         
         
