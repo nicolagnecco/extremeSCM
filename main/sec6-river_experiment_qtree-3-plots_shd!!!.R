@@ -2,7 +2,7 @@ source("main/load_packages.R")
 
 # Load results
 filename <- "output/river/20250306-163004-B=100-declustered=FALSE-simulated=FALSE-mode=subsample.rds"
-plotname <- "output/river/rivers.pdf"
+plotname <- "output/river/rivers-qtree.pdf"
 
 loaded_data <- read_rds(filename)
 str_datetime <- str_extract(filename, "\\d{8}-\\d{6}")
@@ -41,6 +41,9 @@ res <- map_dfr(mylist, function(tbl){
       graph_from_data_frame(directed = TRUE, vertices = all_nodes) %>% 
       as_adjacency_matrix(sparse = FALSE)
     
+    # Explicitly align station order before comparing entries.
+    g_estimated <- g_estimated[rownames(g_true), colnames(g_true), drop = FALSE]
+
     # compute shd
     tibble(
       method = unique(m$method),
@@ -49,8 +52,8 @@ res <- map_dfr(mylist, function(tbl){
       tau = unique(m$tau),
       log_transform = unique(m$log_transform),
       bootstrap_rep = unique(m$bootstrap_rep),
-      shd = SID::hammingDist(g_true, g_estimated),
-      shd_normalized = SID::hammingDist(g_true, g_estimated) / (ncol(g_true) - 1),
+      shd = SID::hammingDist(g_true, g_estimated, allMistakesOne = TRUE),
+      shd_normalized = SID::hammingDist(g_true, g_estimated, allMistakesOne = TRUE) / (ncol(g_true) - 1),
       fp = sum((g_estimated == 1) & (g_true == 0)),
       fn = sum((g_estimated == 0) & (g_true == 1)),
       rev = sum((g_true == 1) & (t(g_estimated) == 1) & (g_estimated == 0))
@@ -65,7 +68,7 @@ taus <- (res %>% filter(method == "Extremal Pruning") %>%
 
 
 dat2plot3 <- res %>% 
-  filter(if_else(method %in% c("HSIC", "PCM"), 
+  filter(if_else(method %in% c("HSIC", "PCM", "QTree"), 
                  is.na(tau),
                  if_else(method %in% c("Extremal Pruning"),
                          tau %in% c(0.9, .95, .975), FALSE))) %>% 
@@ -95,7 +98,8 @@ labels_legend <- unname(TeX(c(
   "Extremal Pruning - $\\tau = 0.95$",
   "Extremal Pruning - $\\tau = 0.975$",
   "dHSIC", 
-  "PCM")))
+  "PCM",
+  "QTree")))
 
 gg <- ggplot(dat2plot4 %>% filter(log_transform==TRUE), 
              aes(x = dataset, y = metric, color = method, shape = method)) +
@@ -117,10 +121,12 @@ gg_colors <- gg +
                my_palette$red,  # Extremal Pruning
                my_palette$green,  # Extremal Pruning
                "#707070",  # HSIC 
-               "#707070"),
+               "#707070",
+               "#E69F00"),
     labels = labels_legend) + # PCM
   scale_shape_manual(values = c("HSIC" = 17,  # Triangle
                                 "PCM" = 15,  # Square
+                                "QTree" = 18,
                                 "Extremal Pruning - tau = 0.9" = NA,
                                 "Extremal Pruning - tau = 0.95" = NA,
                                 "Extremal Pruning - tau = 0.975" = NA),
