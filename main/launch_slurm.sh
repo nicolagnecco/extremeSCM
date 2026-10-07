@@ -36,9 +36,14 @@ export VECLIB_MAXIMUM_THREADS=1
 
 # Slurm runs this command on the compute node, using the existing environment.
 # The quoted heredoc passes the R code literally, including its $ operators.
-exec "$HOME/.local/bin/micromamba" run -p "$HOME/envs/extrescm-v2" \
-  Rscript --vanilla - "$run_dir" "$task_id" "$sim_fn" <<'RSCRIPT'
+set +u
 
+eval "$("$HOME/.local/bin/micromamba" shell hook --shell bash)"
+micromamba activate "$HOME/envs/extrescm-v2"
+
+set -u
+
+exec Rscript --vanilla - "$run_dir" "$task_id" "$sim_fn" <<'RSCRIPT'
 source("main/load_packages.R")
 
 args <- commandArgs(trailingOnly = TRUE)
