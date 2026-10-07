@@ -6,3 +6,5 @@
 
 output/**/*.pdf
 /output/**/
+/Readme.html
+/.venv-qtree/
