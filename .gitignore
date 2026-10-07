@@ -5,3 +5,4 @@
 .DS_Store
 
 output/**/*.pdf
+/output/river-exp/

@@ -17,10 +17,10 @@ station_info <- loaded_data$station_info
 estimated_graphs <- loaded_data$results %>% 
   as_tibble() %>% 
   # filter(method != "full") %>% 
-  filter(if_else(method %in% c("HSIC", "PCM", "true"), 
+  filter(if_else(method %in% c("HSIC", "PCM", "true"),
                  is.na(tau),
                  if_else(method %in% c("Extremal Pruning"),
-                         tau %in% c(0.9, .95, .975), FALSE))) %>% 
+                         tau %in% c(0.9, .95, .975), FALSE))) %>%
   mutate(method = case_when(
     method == "Extremal Pruning" ~ paste0("$\\tau=", tau, "$"),  # Correct parse format for LaTeX-style labels
     TRUE ~ method
