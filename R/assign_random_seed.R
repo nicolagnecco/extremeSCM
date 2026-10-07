@@ -18,7 +18,7 @@ assign_random_seed <- function(tbl, grouping_vars, seed) {
 
 set_rng <- function(tbl, seed) {
     ## adds to tbl a column with seeds to generate independent streams of random
-    ## numbers.
+    ## numbers for each group in tbl.
     ##
     ## Args:
     ##     - tbl: a tibble where the columns contain the parameter settings and the
@@ -40,7 +40,6 @@ set_rng <- function(tbl, seed) {
 
     # create independent RNG streams with L'Ecuyer method
     rng <- rngtools::RNGseq(m, seed = seed, simplify = FALSE)
-    curr_seed <- rng[[m]]
     rng <- rng[group_idxs]
 
     # add RNG streams to tbl
