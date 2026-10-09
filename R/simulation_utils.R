@@ -1,16 +1,14 @@
-prepare_run <- function(run_dir, config_file, data_files, set_params_fn, add_timestamp = TRUE){
+prepare_run <- function(run_dir, config_file, data_files, set_params_fn,
+                        add_timestamp = TRUE){
   ## str str list-of-str [fn : list -> tibble] -> str
   ## prepares the running directory
-  
-  
-  if (timestamp){
+  if (add_timestamp) {
     # timestamp run directory name
     timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
     run_dir_timestamp <- file.path(run_dir, timestamp)
   } else {
     run_dir_timestamp <- run_dir
-  } 
-  
+  }
   # create run directory
   dir.create(run_dir_timestamp, recursive = TRUE)
   

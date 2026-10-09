@@ -1,3 +1,7 @@
+## Experiment: river experiment (Extremal conditional independenct vs HSIC vs PCM test using Extremal Pruning)
+## Plugs into prepare_run() / execute_task()
+
+
 make_params_exp_river <- function(config) {
   ## named-list -> tibble
   
