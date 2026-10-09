@@ -1,6 +1,13 @@
 #!/bin/bash
-# Submit from the project root
+#
+# Submit from the project root, after main/sec6-river_experiment-0-prepare_run.R.
+# 6 datasets x 50 repetitions x 3 alphas = 900 tasks.
+#
 
-# TODO: remove timestamp from river-exp experiment
 
-sbatch --partition=slim --array=1-900%50 --output='logs/slurm-%A_%a.out' main/launch_slurm.sh output/river-exp/20261007_165615 0 run_exp_river
+RUN_DIR="output/river-exp/20261007_165615"
+mkdir -p logs
+
+sbatch --partition=slim --time=00:30:00 --mem=4G --array=1-900%50 \
+  --output='logs/slurm-%A_%a.out' \
+  main/launch_slurm.sh "$RUN_DIR" 0 run_exp_river

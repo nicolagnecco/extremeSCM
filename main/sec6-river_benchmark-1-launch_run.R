@@ -10,7 +10,7 @@ RNGkind("L'Ecuyer-CMRG")
 run_dir <- "output/river-bench/20261008_200009"   # from the prepare step
 n_workers <- 4L
 methods <- c("Extremal Pruning") #, "CausEV", "QTree")   # subset to run
-skip_done <- FALSE                                    # resume after interruption
+skip_done <- FALSE # set to TRUE to resume after interruption
 
 params <- readr::read_rds(file.path(run_dir, "params.rds"))
 task_ids <- params$task_id[params$method %in% methods]

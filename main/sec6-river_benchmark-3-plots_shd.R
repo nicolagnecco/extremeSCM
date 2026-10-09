@@ -3,7 +3,7 @@
 
 source("main/load_packages.R")
 
-run_dir <- "output/river-bench/20261008_200009"
+run_dir <- "output/river-bench/20261009_113540"
 plotname <- file.path(run_dir, "river-benchmark-shd.pdf")
 plotname_errors <- file.path(run_dir, "river-benchmark-errors.pdf")
 
@@ -65,7 +65,9 @@ method_levels <- c(
 
 res_plot <- res %>%
   mutate(method = if_else(method == "Extremal Pruning",
-                          paste0("Extremal Pruning - ", paste0("tau = ", tau, " - alpha = ", alpha)), method),
+                          paste0("Extremal Pruning - ", 
+                                 paste0("tau = ", tau, " - alpha = ", alpha)), 
+                          method),
          method = factor(method, levels = method_levels))
 
 summary_tbl <- res_plot %>%
@@ -84,8 +86,8 @@ labels_legend <- unname(TeX(c(
 colors <- c(my_palette$blue, my_palette$red, my_palette$green,
             "#E69F00", "#707070")[seq_along(method_levels)]
 
-gg <- ggplot(res_plot %>% filter(alpha == 0.01 | is.na(alpha)) %>% 
-               filter(tau > 0.9 | is.na(tau)), 
+gg <- ggplot(res_plot %>% filter(alpha == 0.005 | is.na(alpha)) %>% 
+               filter(tau <= .9 | is.na(tau)), 
              aes(x = method, y = shd, color = method)) +
   facet_wrap(~dataset, nrow = 2, scales = "free") +
   geom_boxplot(alpha = .5, size = .65, fatten = 1.25) +
@@ -105,8 +107,8 @@ save_myplot(gg, plotname, width = 2, height = 2, cairo = FALSE)
 # The tree methods always return d - 1 edges; EP can also keep extra edges.
 
 dat_errors <- res_plot %>%
-  filter(alpha == 0.05 | is.na(alpha)) %>% 
-  filter(tau > .9 | is.na(tau)) %>% 
+  filter(alpha == 0.005 | is.na(alpha)) %>% 
+  filter(tau <= .9 | is.na(tau)) %>% 
   pivot_longer(c(fp, fn, shd_reach), names_to = "metric", values_to = "value") %>%
   mutate(metric = factor(metric, levels = c("fp", "fn", "shd_reach"),
                          labels = c("Extra edges", "Missing edges",

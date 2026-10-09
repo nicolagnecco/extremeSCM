@@ -37,3 +37,39 @@ main/
 ├── sec6-river_plots_map.R               # Produces river network map plots
 ├── sec6-river_plots_shd.R               # Generates Structural Hamming Distance plots for river experiments
 ```
+
+
+```mermaid
+flowchart TD
+    C["Config and experiment name"]
+
+    subgraph PREP["Generic prepare_run"]
+        P1["Create experiment/timestamp directory"]
+        P2["Save config and code-version information"]
+        P3["Call make_params_exp_river(config)"]
+        P4["Save parameter table as params.rds"]
+        P5["Return run directory"]
+
+        P1 --> P2 --> P3 --> P4 --> P5
+    end
+
+    C --> P1
+
+    P5 --> L["Local launcher: loop with progressr"]
+    P5 --> S["Slurm launcher: submit array"]
+
+    L --> E
+    S --> E
+
+    subgraph TASK["Shared execute_task(run_dir, task_id)"]
+        E["Load parameter row and data"]
+        R["Restore saved RNG state"]
+        F["Call foobar(task, data)"]
+        W["Save task result as RDS"]
+
+        E --> R --> F --> W
+    end
+
+    W --> A["Postprocess after workers finish"]
+    A --> O["Combined results and figures"]
+```
