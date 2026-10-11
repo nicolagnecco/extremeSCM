@@ -130,7 +130,12 @@ run_exp_river_bench <- function(task_params, other_data) {
     })
     
   } else if (method == "QTree") {
-    fit <- fit_qtree(X, order,
+    if (is.null(settings$order)){
+      order_ <- NULL
+    } else {
+      order_ <- order
+    }
+    fit <- fit_qtree(X, order_,
                      q_grid = settings$q_grid, small_r = settings$small_r,
                      frac = settings$frac, nrep = settings$nrep)
     est_tbl <- adj_to_tbl(fit$adjacency) %>%
@@ -140,7 +145,14 @@ run_exp_river_bench <- function(task_params, other_data) {
   } else if (method == "CausEV") {
     causev_env <- load_causev(settings$functions_file)
     X_causev <- if (isTRUE(settings$log_transform)) log(X_raw + 1) else X_raw
-    fit <- fit_causev(X_causev, order, causev_env,
+
+    if (is.null(settings$order)){
+      order_ <- NULL
+    } else {
+      order_ <- order
+    }
+
+    fit <- fit_causev(X_causev, order_, causev_env,
                       thd = settings$thd, n_simplex = settings$n_simplex,
                       n_tau = settings$n_tau)
     est_tbl <- adj_to_tbl(fit$adjacency) %>%

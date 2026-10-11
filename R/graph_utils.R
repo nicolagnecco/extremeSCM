@@ -38,98 +38,103 @@ chu_liu_edmonds_tree <- function(S, type = c("min", "max")) {
   t(T_r[[opt_r]])
 }
 
-edmonds_arborescence <- function(W, r, verbose = FALSE){
-  ## numeric.matrix integer boolean -> numeric.matrix
-  ## produces the minimum weighted spanning arborescence OUT of r
-  ## Note: every node except for r has exactly one parent; r has no parents
-  ## W[i, j] is the weight for edge i -> j
-  ## Note: W[i, i] is always ignored in the minimization as self loops are
-  ## not allowed
+## Chu-Liu/Edmonds algorithm for the minimum spanning arborescence.
+##
+## Conventions: W[i, j] is the cost of the edge i -> j; Inf (or NA) means the
+## edge is not allowed. An arborescence rooted at r is a spanning tree in which
+## every node except r has exactly one parent and r has none (edges point away
+## from r). For QTree's root-directed trees (edges point towards the root),
+## call it on t(S) and transpose the result, as chu_liu_edmonds_tree() does.
 
-  W
-}
 
-edmonds_arborescence_greedy <- function(W, r, verbose = FALSE){
-  ## numeric.matrix integer boolean -> numeric.matrix
-  ## produces the minimum weighted spanning arborescence OUT of r
-  ## Note: every node except for r has exactly one parent; r has no parents
-  ## W[i, j] is the weight for edge i -> j
-  ## Note: W[i, i] is always ignored in the minimization as self loops are
-  ## not allowed
+edmonds_arborescence <- function(W, r) {
+  ## numeric.matrix integer -> numeric.matrix
+  ## produces the 0/1 adjacency matrix of a minimum-cost arborescence rooted at r
+  d <- nrow(W)
+  W[is.na(W)] <- Inf
+  diag(W) <- Inf                       # no self-loops
+  W[, r] <- Inf                        # nothing enters the root
 
-  W_original <- W
-  d <- ncol(W)
-
-  ## remove non-candidate edges 
-  diag(W) <- Inf
-  W[, r] <- Inf
-
-  A <- matrix(0, nrow = d, ncol = d)
-
-  candidate_parents <- c(r)
-
-  for (i in seq_len(d - 1)) {
-
-    # for each candidate parent choose the minimum weight edge
-    res <- purrr::map(seq_along(candidate_parents), function(j){
-      p_ <- candidate_parents[j]
-      min_w <- min(W[p_, ])
-      c_ <- which.min(W[p_, ])
-
-      A_ <- A
-      A_[p_, c_] <- 1
-      W_ <- W
-      W_[, c_] <- Inf
-
-      if (verbose){
-        cat("iteration:", i,  "-- candidate (pa, ch):", c(p_,c_),
-            "-- score:", min_w,
-            "-- A_ has dir cycle:", has_directed_cycles(A_),
-            "\n")
-      }   
-      if (!has_directed_cycles(A_)){
-        list(
-          score = min_w,
-          A = A_,
-          W = W_,
-          parent = p_,
-          child = c_
-        )
-      }
-    }) |>
-  purrr::discard(is.null)
-    
-    ## pick best parent
-    idx_opt <- which.min(unlist(purrr::transpose(res)$score))
-    
-    A <- res[[idx_opt]]$A
-    W <- res[[idx_opt]]$W
-
-    cat("optimal (pa, ch):", c(res[[idx_opt]]$parent, res[[idx_opt]]$child),
-        "with score:", res[[idx_opt]]$score, "\n")
-    print(A)
-
-    ## update candidate parents
-    candidate_parents <- which(apply(W, 1, min) != Inf)
+  # 1. every node except the root picks its cheapest incoming edge
+  parent <- integer(d)
+  for (v in seq_len(d)) {
+    if (v == r) next
+    if (all(is.infinite(W[, v]))) stop("node ", v, " cannot be reached from the root")
+    parent[v] <- which.min(W[, v])
   }
-  ## return updated weight matrix
-  W_opt <- matrix(0, nrow = d, ncol = d)
-  W_opt[A == 1] <- W_original[A == 1]
-  W_opt
+
+  # 2. no cycle among the chosen edges: they form the optimal arborescence
+  cycle <- find_parent_cycle(parent, r)
+  if (is.null(cycle)) {
+    A <- matrix(0, d, d)
+    others <- setdiff(seq_len(d), r)
+    A[cbind(parent[others], others)] <- 1
+    return(A)
+  }
+
+  # 3. contract the cycle into one node (the last one, m), re-weighting the
+  #    edges that enter it: entering the cycle at v costs W[u, v] minus the
+  #    cost of v's cycle edge, which is dropped. Remember each new edge's
+  #    original endpoints, to expand the solution afterwards.
+  others <- setdiff(seq_len(d), cycle)
+  m <- length(others) + 1L
+  new_id <- integer(d)
+  new_id[others] <- seq_along(others)
+  new_id[cycle] <- m
+
+  W2 <- matrix(Inf, m, m)
+  orig_from <- matrix(NA_integer_, m, m)
+  orig_to <- matrix(NA_integer_, m, m)
+  for (u in seq_len(d)) {
+    for (v in seq_len(d)) {
+      if (is.infinite(W[u, v])) next
+      if (u %in% cycle && v %in% cycle) next          # edges inside the cycle vanish
+      cost <- if (v %in% cycle) W[u, v] - W[parent[v], v] else W[u, v]
+      a <- new_id[u]
+      b <- new_id[v]
+      if (cost < W2[a, b]) {                           # keep the cheapest parallel edge
+        W2[a, b] <- cost
+        orig_from[a, b] <- u
+        orig_to[a, b] <- v
+      }
+    }
+  }
+
+  # 4. solve the smaller problem (the root is never in a cycle: it has no parent)
+  A2 <- edmonds_arborescence(W2, new_id[r])
+
+  # 5. expand: map the edges back; keep the cycle edges except the one into the
+  #    node where the solution enters the cycle
+  A <- matrix(0, d, d)
+  edges <- which(A2 == 1, arr.ind = TRUE)
+  for (k in seq_len(nrow(edges))) {
+    a <- edges[k, 1]
+    b <- edges[k, 2]
+    A[orig_from[a, b], orig_to[a, b]] <- 1
+    if (b == m) entered <- orig_to[a, b]
+  }
+  for (c in cycle) {
+    if (c != entered) A[parent[c], c] <- 1
+  }
+  A
 }
 
 
-
-W <- matrix(100, 4, 4)
-W[1, 2] <- 1;  W[1, 3] <- 50; W[1, 4] <- 50
-W[2, 3] <- 5;  W[2, 4] <- 50
-W[3, 4] <- 5;  W[4, 3] <- 0
-W
-W_opt <- edmonds_arborescence_greedy(W, 1, verbose = TRUE)
-W_opt
-is_rooted_directed_tree(W_opt, 1)
-
-
+find_parent_cycle <- function(parent, r) {
+  ## integer.vector integer -> integer.vector|NULL
+  ## produces the nodes of a cycle in the parent pointers (parent[v] is v's
+  ## parent; the root r has none), or NULL if following parents always reaches r
+  for (start in seq_along(parent)) {
+    path <- integer(0)
+    v <- start
+    while (v != r && !(v %in% path)) {
+      path <- c(path, v)
+      v <- parent[v]
+    }
+    if (v != r) return(path[match(v, path):length(path)])
+  }
+  NULL
+}
 
 has_directed_cycles <- function(A){
   ## numeric.matrix integer -> boolean
@@ -152,9 +157,6 @@ is_rooted_directed_tree <- function(A, r){
   test_1 & test_2 & test_3
 }
 
-W_opt <- edmonds_arborescence(W, 2)
-
-reachability(W_opt)
 
 
 order_restricted_tree <- function(S, order, type = c("min", "max")) {
