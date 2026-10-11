@@ -4,11 +4,13 @@
 ## Port of `quantileDispersion`, `QTree.fitToSamples` and `qtreeAutoSelect`
 ## from https://github.com/princengoc/qtree (qtree/QTree.py and
 ## qtree/qtreeAutoSelect.py). Differences from the Python package:
-##   - the root-directed spanning tree uses as starting point an ancestral graph
-##     according to `order`. Such starting graph has no cycles, so the minimum
-##     root-directed spanning tree is obtained by letting every non-root node
-##     pick its lowest-score child; the root is the last node of `order`.
-##     Without the restriction the package runs Chu-Liu/Edmonds over all roots.
+##   - the root-directed spanning tree gives the option to use as starting point
+##     an ancestral graph according to `order`.
+##     - when `order` is provided: the minimum root-directed spanning tree is
+##       obtained by letting every non-root node pick its lowest/highest-score
+##       child; the root is the last node of `order`.
+##     - when `order` is `NULL`: the minimum root-directed spanning tree is
+##       obtained via Chu-Liu/Edmonds.
 ##   - no missing-value weights (the Danube data has no missing values, and the
 ##     package's weights are constant across columns in that case).
 ##
@@ -35,54 +37,21 @@ qtree_scores <- function(X, q = 0.8, small_r = 0.05) {
 }
 
 
-
-order_restricted_tree <- function(S, order, type = c("min", "max")) {
-  ## numeric.matrix integer.vector character -> numeric.matrix
-  ## produces the order-restricted root-directed spanning tree from a score
-  ## matrix S.
-  ## `type = "min"` for QTree scores, `"max"` for agreement counts (centroid).
-  type <- match.arg(type)
-  d <- length(order)
-  A <- matrix(0, nrow(S), ncol(S), dimnames = dimnames(S))
-  for (k in seq_len(d - 1L)) {
-    i <- order[k]
-    downstream <- order[(k + 1L):d]
-    s <- S[i, downstream]
-    best <- if (type == "min") which.min(s) else which.max(s)
-    A[i, downstream[best]] <- 1
-  }
-  A
-}
-
-
-
-reachability <- function(A) {
-  ## numeric.matrix -> numeric.matrix
-  ## produces the reachability matrix R, where R[i, j] = 1 if there is a
-  ## directed path i -> ... -> j.
-  R <- A
-  repeat {
-    R_new <- ((R + R %*% A) > 0) * 1
-    if (all(R_new == R)) break
-    R <- R_new
-  }
-  dimnames(R) <- dimnames(A)
-  R
-}
-
-
 ## QTree for fixed (q, small_r) on one data set.
 fit_qtree_fixed <- function(X, order, q = 0.8, small_r = 0.05) {
   ## numeric.matrix integer.vector numeric numeric -> numeric.matrix
-  order_restricted_tree(qtree_scores(X, q, small_r), order, type = "min")
+  ## produces a QTree for fixed settings configuration
+  build_root_directed_tree(qtree_scores(X, q, small_r), order, type = "min")
 }
+
+
 ## Centroid of a list of trees (QTree.fitToSamples): the order-restricted tree
 ## maximising the edge agreement W = mean of the adjacency matrices.
-
 qtree_centroid <- function(trees, order){
   ## list-of-numeric.matrix integer.vector -> numeric.matrix
-    W <- Reduce(`+`, trees) / length(trees)
-    order_restricted_tree(W, order, type = "max")
+  ## produces a root-directed graph centroid
+  W <- Reduce(`+`, trees) / length(trees)
+  build_root_directed_tree(W, order, type = "max")
 }
 
 
@@ -91,7 +60,7 @@ qtree_centroid <- function(trees, order){
 qtree_variability <- function(trees, centroid){
   ## list-of-numeric.matrix numeric.matrix -> numeric
   R_c <- reachability(centroid)
-  
+ 
   var_tree <- mean(vapply(trees, function(tr) sum(tr != centroid), 0)) /
     sum(centroid)
   var_reach <- mean(vapply(trees, function(tr) sum(reachability(tr) != R_c), 0)) /
@@ -109,9 +78,12 @@ fit_qtree <- function(X, order, q_grid = seq(0.7, 0.9, by = 0.025),
                       small_r = 0.05, frac = 0.75, nrep = 1000L) {
   ## numeric.matrix integer.vector ... -> list
   ## `order` may be integer column positions or column names.
-  if (is.character(order)) order <- match(order, colnames(X))
-  stopifnot(!anyNA(order), !anyNA(X), length(order) == ncol(X))
 
+  stopifnot(!anyNA(X))
+  if (!is.null(order)){
+    if (is.character(order)) order <- match(order, colnames(X))
+    stopifnot(!anyNA(order), length(order) == ncol(X))
+  }
   n <- nrow(X)
   m <- floor(n * frac)
   subsamples <- lapply(seq_len(nrep), function(l) sample.int(n, m))
