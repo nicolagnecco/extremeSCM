@@ -3,7 +3,7 @@
 
 source("main/load_packages.R")
 
-run_dir <- "output/river-bench/20261009_113540"
+run_dir <- "output/river-bench/20261011_164320"
 plotname <- file.path(run_dir, "river-benchmark-shd.pdf")
 plotname_errors <- file.path(run_dir, "river-benchmark-errors.pdf")
 
@@ -64,6 +64,7 @@ method_levels <- c(
   "QTree", "CausEV")
 
 res_plot <- res %>%
+  # filter(method == "Extremal Pruning") %>% 
   mutate(method = if_else(method == "Extremal Pruning",
                           paste0("Extremal Pruning - ", 
                                  paste0("tau = ", tau, " - alpha = ", alpha)), 
@@ -86,7 +87,7 @@ labels_legend <- unname(TeX(c(
 colors <- c(my_palette$blue, my_palette$red, my_palette$green,
             "#E69F00", "#707070")[seq_along(method_levels)]
 
-gg <- ggplot(res_plot %>% filter(alpha == 0.005 | is.na(alpha)) %>% 
+gg <- ggplot(res_plot %>% filter(alpha == 0.0025 | is.na(alpha)) %>% 
                filter(tau <= .9 | is.na(tau)), 
              aes(x = method, y = shd, color = method)) +
   facet_wrap(~dataset, nrow = 2, scales = "free") +

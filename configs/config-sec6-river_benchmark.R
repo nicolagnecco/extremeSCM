@@ -1,10 +1,6 @@
 ## Configuration for the river benchmark: Extremal Pruning vs QTree vs CausEV.
 ##
-## All methods see the same subsample of the declustered Danube data and the same
-## prior knowledge (the causal order of each branch):
-##   - Extremal Pruning starts from the complete DAG on the order;
-##   - QTree and CausEV choose, for every non-root station, one child among the
-##     stations downstream of it (order-restricted root-directed tree).
+## All methods see the same subsample of the Danube data.
 
 set_config <- function(){
   list(
@@ -18,8 +14,10 @@ set_config <- function(){
 
     # Extremal Pruning (Algorithm 2 with Markov-blanket separating sets)
     ep = list(
-      taus = c(0.8, 0.85, 0.9, 0.95),  # ~64, 48, 32 exceedances of the subsample
-      alpha = c(0.005, 0.01, 0.05)
+      params_iter = list(
+      taus = c(0.8, 0.85, 0.9, 0.95),
+      alpha = c(0.001, 0.0025, 0.005, 0.01)),
+      use_order = FALSE
     ),
 
     # QTree (Tran, Buck & Klueppelberg, 2024), auto-tuned as in their Section 4
@@ -27,7 +25,8 @@ set_config <- function(){
       q_grid = seq(0.7, 0.9, by = 0.025),
       small_r = 0.05,
       frac = 0.75,
-      nrep = 1000L
+      nrep = 1000L,
+      use_order = FALSE
     ),
 
     # CausEV (Mhalla, Chavez-Demoulin & Dupuis, 2020), settings of their
@@ -39,7 +38,8 @@ set_config <- function(){
       thd = 0.9,
       n_simplex = 800L,
       n_tau = 1L,
-      log_transform = FALSE      # CausEV was run on raw discharges
+      log_transform = FALSE,      # CausEV was run on raw discharges
+      use_order = FALSE
     ),
 
     # Branches of the upper Danube; each is the chain order[1] -> order[2] -> ...
