@@ -25,7 +25,7 @@ experiments <- list(
     sim_fn = "run_exp_river_bench",
     out_dir = "output/river-bench",
     data_files = river_data_files
-  )
+  ),
 
   # Extremal PC vs QTree vs CausEV, order unknown (XPC, Exp 2)
   "river-bench-noorder" = list(
