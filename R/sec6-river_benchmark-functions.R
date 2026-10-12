@@ -100,14 +100,9 @@ run_exp_river_bench <- function(task_params, other_data) {
   diagnostics <- list()
   
   if (method == "Extremal Pruning") {
-    if (settings$use_order){
-      # True DAG on the order
-      full_adjmat <- upper.tri(matrix(0, d, d)) * 1
-    } else {
-      est_causorder <- causalXtreme::ease(X_raw, both_tails = F)
-      full_adjmat <- caus_order_to_dag(est_causorder)
-      diagnostics$est_order <- est_causorder
-    }
+    ## True DAG on the order
+    full_adjmat <- upper.tri(matrix(0, d, d)) * 1
+    
     
     dimnames(full_adjmat) <- list(station_names, station_names)
     
@@ -142,9 +137,7 @@ run_exp_river_bench <- function(task_params, other_data) {
     
   } else if (method == "QTree") {
     
-    order_ <- if (settings$use_order) order else NULL
-    
-    fit <- fit_qtree(X, order_,
+    fit <- fit_qtree(X, order,
                      q_grid = settings$q_grid, small_r = settings$small_r,
                      frac = settings$frac, nrep = settings$nrep)
     est_tbl <- adj_to_tbl(fit$adjacency) %>%
@@ -154,10 +147,8 @@ run_exp_river_bench <- function(task_params, other_data) {
   } else if (method == "CausEV") {
     causev_env <- load_causev(settings$functions_file)
     X_causev <- if (isTRUE(settings$log_transform)) log(X_raw + 1) else X_raw
-    
-    order_ <- if (settings$use_order) order else NULL
-    
-    fit <- fit_causev(X_causev, order_, causev_env,
+        
+    fit <- fit_causev(X_causev, order, causev_env,
                       thd = settings$thd, n_simplex = settings$n_simplex,
                       n_tau = settings$n_tau)
     est_tbl <- adj_to_tbl(fit$adjacency) %>%

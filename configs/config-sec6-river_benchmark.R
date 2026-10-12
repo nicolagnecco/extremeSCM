@@ -16,8 +16,7 @@ set_config <- function(){
     ep = list(
       params_iter = list(
       taus = c(0.8, 0.85, 0.9, 0.95),
-      alpha = c(0.001, 0.0025, 0.005, 0.01)),
-      use_order = FALSE
+      alpha = c(0.001, 0.0025, 0.005, 0.01))
     ),
 
     # QTree (Tran, Buck & Klueppelberg, 2024), auto-tuned as in their Section 4
@@ -25,8 +24,7 @@ set_config <- function(){
       q_grid = seq(0.7, 0.9, by = 0.025),
       small_r = 0.05,
       frac = 0.75,
-      nrep = 1000L,
-      use_order = FALSE
+      nrep = 1000L
     ),
 
     # CausEV (Mhalla, Chavez-Demoulin & Dupuis, 2020), settings of their
@@ -38,8 +36,7 @@ set_config <- function(){
       thd = 0.9,
       n_simplex = 800L,
       n_tau = 1L,
-      log_transform = FALSE,      # CausEV was run on raw discharges
-      use_order = FALSE
+      log_transform = FALSE      # CausEV was run on raw discharges
     ),
 
     # Branches of the upper Danube; each is the chain order[1] -> order[2] -> ...
