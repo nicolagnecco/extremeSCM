@@ -31,8 +31,18 @@ prepare_run <- function(run_dir, config_file, data_files, set_params_fn,
                    file.path(run_dir_timestamp, "other_data.rds"))
 
   ## save metadata about the run
+  ## (git_commit identifies the repository: leave meta.rds out of anonymized
+  ## material; git_dirty flags uncommitted changes at preparation time)
+  git <- function(cmd) {
+    out <- tryCatch(suppressWarnings(system(paste("git", cmd), intern = TRUE,
+                                            ignore.stderr = TRUE)),
+                    error = function(e) character(0))
+    if (length(out) == 0) NA_character_ else out
+  }
   readr::write_rds(list(sim_fn = sim_fn_name, config_file = config_file,
-                        git_commit = system("git rev-parse HEAD", intern = TRUE),
+                        n_tasks = nrow(params),
+                        git_commit = git("rev-parse HEAD")[1],
+                        git_dirty = !all(is.na(git("status --porcelain"))),
                         created = Sys.time()),
                    file.path(run_dir_timestamp, "meta.rds"))
   
@@ -62,4 +72,48 @@ execute_task <- function(run_dir, task_id, sim_fn){
   readr::write_rds(res, res_file)
   
   invisible(NULL)
+}
+
+
+missing_array_spec <- function(run_dir) {
+  ## str -> str
+  ## Slurm --array spec of the tasks without a result file, e.g. "1-5,9,12-900"
+  n <- nrow(readr::read_rds(file.path(run_dir, "params.rds")))
+  ids <- seq_len(n)
+  ids <- ids[!file.exists(file.path(run_dir, sprintf("res_%04d.rds", ids)))]
+  if (length(ids) == 0) return("")
+  breaks <- c(0, which(diff(ids) != 1), length(ids))
+  from <- ids[breaks[-length(breaks)] + 1]
+  to <- ids[breaks[-1]]
+  paste(ifelse(from == to, from, paste0(from, "-", to)), collapse = ",")
+}
+
+
+collect_run <- function(run_dir) {
+  ## str -> list
+  ## binds the `results` tibbles of all finished tasks (adding task_id) and
+  ## keeps every other element of the task outputs as a list-column of `extras`
+  params <- readr::read_rds(file.path(run_dir, "params.rds"))
+  res_files <- file.path(run_dir, sprintf("res_%04d.rds", params$task_id))
+  done <- file.exists(res_files)
+  if (!all(done)) {
+    warning(sum(!done), " of ", length(done), " tasks have no result yet: ",
+            paste(utils::head(params$task_id[!done], 20), collapse = ", "),
+            call. = FALSE)
+  }
+
+  loaded <- lapply(res_files[done], readr::read_rds)
+  ids <- params$task_id[done]
+
+  results <- purrr::map2_dfr(loaded, ids, function(res, id) {
+    dplyr::mutate(res$results, task_id = id)
+  })
+
+  extras <- tibble::tibble(task_id = ids)
+  for (nm in setdiff(unique(unlist(lapply(loaded, names))), "results")) {
+    extras[[nm]] <- lapply(loaded, `[[`, nm)
+  }
+
+  list(results = results, extras = extras, params = params,
+       missing = params$task_id[!done])
 }
