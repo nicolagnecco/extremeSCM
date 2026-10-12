@@ -148,7 +148,7 @@ run_exp_river_bench <- function(task_params, other_data) {
       tau <- settings_$taus[i]
       alpha <- settings_$alpha[i]
 
-      Y <- graphicalExtremes::data2mpareto(X, p = tau)
+      Y <- data2mpareto(X, p = tau)
       k <- nrow(Y)
       
       vario <- graphicalExtremes::emp_vario(Y)

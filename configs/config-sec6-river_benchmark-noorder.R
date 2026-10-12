@@ -1,4 +1,4 @@
-## Configuration for the river benchmark: Extremal Pruning vs QTree vs CausEV.
+## Configuration for the river benchmark: Extremal PC vs QTree vs CausEV.
 ##
 ## All methods see the same subsample of the Danube data.
 
