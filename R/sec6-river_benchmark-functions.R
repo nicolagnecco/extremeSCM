@@ -6,23 +6,24 @@ make_params_exp_river_bench <- function(config) {
   ## One row per (dataset, repetition, method). The RNG stream is shared by all
   ## methods of the same (dataset, repetition), so that the subsample, which is
   ## drawn first in run_exp_river_bench(), is identical across methods.
+
+  methods_allowed <- c("Extremal Pruning", "Extremal PC", "QTree", "CausEV")
   
   required <- c(
     "declustered", "log_transform", "n_reps", "subsample_prop", "seed",
-    "methods", "ep", "qtree", "causev", "datasets"
+    "methods", "datasets"
   )
+  
   missing <- setdiff(required, names(config))
   if (length(missing) > 0L) {
     stop("Missing config fields: ", paste(missing, collapse = ", "),
          call. = FALSE)
   }
   
-  settings <- list(
-    "Extremal Pruning" = config$ep,
-    "QTree" = config$qtree,
-    "CausEV" = config$causev
-  )
-  unknown <- setdiff(config$methods, names(settings))
+  settings <- config$methods
+  methods <- names(settings)
+  
+  unknown <- setdiff(methods, methods_allowed)
   if (length(unknown) > 0L) {
     stop("Unknown methods: ", paste(unknown, collapse = ", "), call. = FALSE)
   }
@@ -35,7 +36,7 @@ make_params_exp_river_bench <- function(config) {
   datasets %>%
     tidyr::crossing(
       repetitions = seq_len(config$n_reps),
-      method = config$methods
+      method = methods
     ) %>%
     dplyr::group_by(dataset, repetitions) %>%
     set_rng(config$seed) %>%
@@ -134,6 +135,32 @@ run_exp_river_bench <- function(task_params, other_data) {
       adj_to_tbl(B_pruned) %>%
         dplyr::mutate(tau = tau, k = k, alpha = alpha)
     })
+    
+  } else if (method == "Extremal PC") {
+    settings_ <- tidyr::crossing(!!!settings$params_iter)
+
+    est_tbl <- purrr::map_dfr(seq_len(nrow(settings_)), function(i) {
+      tau <- settings_$taus[i]
+      alpha <- settings_$alpha[i]
+
+      Y <- data2mpareto(X, p = tau)
+      k <- nrow(Y)
+      
+      vario <- emp_vario(Y)
+
+      pc.fit <- pc(
+        suffStat = list(Gamma = vario, n = k),
+        indepTest = HR_CItest,
+        alpha = alpha,
+        verbose = FALSE,
+        labels = station_names
+      )
+      adjm <- wgtMatrix(getGraph(pc.fit), transpose = FALSE)
+
+      adj_to_tbl(adjm) %>%
+        dplyr::mutate(tau = tau, k = k, alpha = alpha)
+      
+    })      
     
   } else if (method == "QTree") {
     
