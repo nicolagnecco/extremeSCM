@@ -24,7 +24,8 @@ set_config <- function(){
       q_grid = seq(0.7, 0.9, by = 0.025),
       small_r = 0.05,
       frac = 0.75,
-      nrep = 1000L
+      nrep = 1000L,
+      use_order = TRUE
     ),
 
     # CausEV (Mhalla, Chavez-Demoulin & Dupuis, 2020), settings of their
@@ -36,7 +37,8 @@ set_config <- function(){
       thd = 0.9,
       n_simplex = 800L,
       n_tau = 1L,
-      log_transform = FALSE      # CausEV was run on raw discharges
+      log_transform = FALSE,      # CausEV was run on raw discharges
+      use_order = TRUE
     ),
 
     # Branches of the upper Danube; each is the chain order[1] -> order[2] -> ...
