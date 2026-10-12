@@ -4,7 +4,7 @@
 source("main/load_packages.R")
 
 run_dir <- "output/river-exp/20261007_165615"
-alpha_plot <- 0.005                      # significance level shown in the figure
+alpha_plot <- 0.01                      # significance level shown in the figure
 metric_plot <- "SHD Normalized"         # one of the labels in `metric_labels`
 plotname <- file.path(run_dir, paste0("rivers", 
                                       "-alpha=", alpha_plot, 
@@ -70,7 +70,7 @@ metric_plot <- "SHD"
 
 
 dat2plot <- res %>% 
-  filter(method != "full", alpha == .01, log_transform) %>% 
+  filter(method != "full", alpha == alpha_plot, log_transform) %>% 
   filter(
    (tau == 0 & method != "Extremal Pruning") |
      (tau %in% c(0.95, 0.96, 0.97, 0.98) & method == "Extremal Pruning")
@@ -116,7 +116,7 @@ taus_common <- res %>%
   pull(tau)
 
 dat2plot <- res %>%
-  filter(method != "full", alpha == .005, log_transform,
+  filter(method != "full", alpha == alpha_plot, log_transform,
          tau %in% taus_common) %>%
   pivot_longer(cols = names(metric_labels), names_to = "metric_name",
                values_to = "metric") %>%
