@@ -21,6 +21,11 @@ make_params_exp_river_bench <- function(config) {
   }
   
   settings <- config$methods
+
+  if (!is.list(settings) || is.null(names(settings)) || any(names(settings) == "")) {
+    stop("config$methods must be a named list: method name -> settings.", call. = FALSE)
+  }
+  
   methods <- names(settings)
   
   unknown <- setdiff(methods, methods_allowed)
@@ -143,23 +148,23 @@ run_exp_river_bench <- function(task_params, other_data) {
       tau <- settings_$taus[i]
       alpha <- settings_$alpha[i]
 
-      Y <- data2mpareto(X, p = tau)
+      Y <- graphicalExtremes::data2mpareto(X, p = tau)
       k <- nrow(Y)
       
-      vario <- emp_vario(Y)
+      vario <- graphicalExtremes::emp_vario(Y)
 
-      pc.fit <- pc(
+      pc.fit <- pcalg::pc(
         suffStat = list(Gamma = vario, n = k),
         indepTest = HR_CItest,
         alpha = alpha,
         verbose = FALSE,
         labels = station_names
       )
-      adjm <- wgtMatrix(getGraph(pc.fit), transpose = FALSE)
-
+      adjm <- (pcalg::wgtMatrix(pcalg::getGraph(pc.fit),
+                                transpose = FALSE) != 0) * 1
+      dimnames(adjm) <- list(station_names, station_names)
       adj_to_tbl(adjm) %>%
         dplyr::mutate(tau = tau, k = k, alpha = alpha)
-      
     })      
     
   } else if (method == "QTree") {
