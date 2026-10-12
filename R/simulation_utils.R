@@ -45,10 +45,15 @@ prepare_run <- function(run_dir, config_file, data_files, set_params_fn,
                         git_dirty = !all(is.na(git("status --porcelain"))),
                         created = Sys.time()),
                    file.path(run_dir_timestamp, "meta.rds"))
+
+  # leave information available to cluster as text file so can be read via bash
+  writeLines(sim_fn_name,
+             file.path(run_dir_timestamp, "sim_fn.txt"))
+  writeLines(as.character(nrow(params)),
+             file.path(run_dir_timestamp, "n_tasks.txt"))
   
   # return run directory
-  return(run_dir_timestamp)
-  
+  run_dir_timestamp 
 }
 
 

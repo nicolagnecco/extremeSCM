@@ -1,32 +1,32 @@
 #!/bin/bash
 # Submit the unfinished tasks of a prepared run directory as a Slurm array.
-# Run from the project root, on the login node:
 #   bash main/submit_slurm.sh RUN_DIR [THROTTLE] [TIME] [MEM]
-# Tasks that already have a res_XXXX.rds are skipped, so the same command
-# resubmits whatever failed or timed out.
-
 set -euo pipefail
 
 RUN_DIR="${1:?Usage: bash main/submit_slurm.sh RUN_DIR [THROTTLE] [TIME] [MEM]}"
+RUN_DIR="${RUN_DIR%/}"                      # drop a trailing slash
 THROTTLE="${2:-100}"
 TIME="${3:-00:30:00}"
 MEM="${4:-4G}"
 
-MM="$HOME/.local/bin/micromamba"
-ENV="$HOME/envs/extrescm-v2"
-r() { "$MM" run -p "$ENV" Rscript --vanilla -e "$1"; }
+SIM_FN=$(cat "$RUN_DIR/sim_fn.txt")
+N_TASKS=$(cat "$RUN_DIR/n_tasks.txt")
 
-SIM_FN=$(r "cat(readRDS('$RUN_DIR/meta.rds')\$sim_fn)")
-ARRAY=$(r "source('R/simulation_utils.R'); cat(missing_array_spec('$RUN_DIR'))")
+# Task ids without a result file, as a comma-separated list
+TODO=""
+for i in $(seq 1 "$N_TASKS"); do
+  [ -f "$RUN_DIR/$(printf 'res_%04d.rds' "$i")" ] || TODO="$TODO,$i"
+done
+TODO="${TODO#,}"
 
-if [ -z "$ARRAY" ]; then
-  echo "All tasks of $RUN_DIR are done."
+if [ -z "$TODO" ]; then
+  echo "All $N_TASKS tasks of $RUN_DIR are done."
   exit 0
 fi
 
 mkdir -p logs   # sbatch does not create the folder for --output
-echo "Submitting tasks $ARRAY of $SIM_FN from $RUN_DIR"
+echo "Submitting $(echo "$TODO" | tr ',' '\n' | wc -l) of $N_TASKS tasks of $SIM_FN"
 sbatch --partition=slim --time="$TIME" --mem="$MEM" \
-  --array="${ARRAY}%${THROTTLE}" \
+  --array="${TODO}%${THROTTLE}" \
   --output='logs/slurm-%A_%a.out' \
   main/launch_slurm.sh "$RUN_DIR" 0 "$SIM_FN"
