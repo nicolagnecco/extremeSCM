@@ -8,5 +8,4 @@ output/**/*.pdf
 /output/**/
 /Readme.html
 /.venv-qtree/
-/tests/
 /third_party/
