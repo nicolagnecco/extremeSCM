@@ -5,9 +5,9 @@
 # CausEV and QTree tasks are much slower than the EP.
 
 
-RUN_DIR="output/river-bench/20261009_113540"
+RUN_DIR="output/river-bench/20261011_165553"
 mkdir -p logs
 
-sbatch --partition=slim --time=00:30:00 --mem=4G --array=1-900%50 \
+sbatch --partition=slim --time=00:30:00 --mem=4G --array=1-900%100 \
   --output='logs/slurm-%A_%a.out' \
   main/launch_slurm.sh "$RUN_DIR" 0 run_exp_river_bench

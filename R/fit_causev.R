@@ -131,7 +131,7 @@ causev_scores <- function(X, order, causev_env, thd = 0.9, n_simplex = 800L,
 
 fit_causev <- function(X, order, causev_env, thd = 0.9, n_simplex = 800L,
                        n_tau = 1L) {
-  ## numeric.matrix integer.vector environment ... -> list
+  ## numeric.matrix integer.vector|NULL environment ... -> list
   
   stopifnot(!anyNA(X))
   

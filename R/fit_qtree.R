@@ -45,7 +45,7 @@ fit_qtree_fixed <- function(X, order, q = 0.8, small_r = 0.05) {
 }
 
 
-## Centroid of a list of trees (QTree.fitToSamples): the order-restricted tree
+## Centroid of a list of trees (QTree.fitToSamples): the tree
 ## maximising the edge agreement W = mean of the adjacency matrices.
 qtree_centroid <- function(trees, order){
   ## list-of-numeric.matrix integer.vector -> numeric.matrix
@@ -76,7 +76,7 @@ qtree_variability <- function(trees, centroid){
 ## Var(T) (their eq. 11). Return the centroid with the smallest variability.
 fit_qtree <- function(X, order, q_grid = seq(0.7, 0.9, by = 0.025),
                       small_r = 0.05, frac = 0.75, nrep = 1000L) {
-  ## numeric.matrix integer.vector ... -> list
+  ## numeric.matrix integer.vector|NULL ... -> list
   ## `order` may be integer column positions or column names.
 
   stopifnot(!anyNA(X))

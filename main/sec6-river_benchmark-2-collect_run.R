@@ -3,7 +3,7 @@
 
 source("main/load_packages.R")
 
-run_dir <- "output/river-bench/20261011_164320"
+run_dir <- "output/river-bench/20261011_165553"
 
 params <- read_rds(file.path(run_dir, "params.rds"))
 res_files <- file.path(run_dir, sprintf("res_%04d.rds", params$task_id))

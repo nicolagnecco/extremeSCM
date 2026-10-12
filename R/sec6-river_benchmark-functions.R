@@ -104,8 +104,9 @@ run_exp_river_bench <- function(task_params, other_data) {
       # True DAG on the order
       full_adjmat <- upper.tri(matrix(0, d, d)) * 1
     } else {
-      est_causorder <- causalXtreme::direct_lingam_search(X)
+      est_causorder <- causalXtreme::ease(X_raw, both_tails = F)
       full_adjmat <- caus_order_to_dag(est_causorder)
+      diagnostics$est_order <- est_causorder
     }
     
     dimnames(full_adjmat) <- list(station_names, station_names)
