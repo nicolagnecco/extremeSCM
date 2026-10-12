@@ -24,6 +24,10 @@ if [ -z "$TODO" ]; then
   exit 0
 fi
 
+N_TODO=$(echo "$TODO" | tr ',' '\n' | grep -c .)
+[ "$N_TODO" -eq "$N_TASKS" ] && TODO="1-$N_TASKS"   # fresh run: plain range
+
+
 mkdir -p logs   # sbatch does not create the folder for --output
 echo "Submitting $(echo "$TODO" | tr ',' '\n' | wc -l) of $N_TASKS tasks of $SIM_FN"
 sbatch --partition=slim --time="$TIME" --mem="$MEM" \
