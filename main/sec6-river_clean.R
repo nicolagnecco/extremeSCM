@@ -60,3 +60,11 @@ station_info <- StsInfoChos %>%
 # clean workspace
 saveRDS(object = river_dat_clean %>% left_join(station_info, by = "id"),
         file = "data/river_clean.rds")
+
+## declustered data (see Asadi et al. 2015), as distributed with graphicalExtremes
+## this dataset contains 31 variables (unlike river_clean_full.rds)
+river_declustered <- graphicalExtremes::danube$data_clustered
+colnames(river_declustered) <- paste0("station_", seq_len(ncol(river_declustered)))
+
+river_declustered %>% as_tibble() %>%
+  saveRDS("data/river_clean_declustered.rds")
