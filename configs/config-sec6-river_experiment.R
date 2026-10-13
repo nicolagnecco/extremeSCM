@@ -7,9 +7,9 @@ set_config <- function(){
     declustered = FALSE,
     seed = 1321L,
     
-    taus = c(0.9, 0.95, 0.96, 0.97, 0.98),
-    taus_other_methods = c(0.0, 0.9, 0.95, 0.96, 0.97, 0.98),
-    alphas = c(0.005, 0.01, 0.05),
+    taus = c(0.9, 0.95, 0.975),
+    taus_other_methods = c(0.0, 0.9, 0.95, 0.975),
+    alphas = c(0.01, 0.05),
     log_transform = TRUE,
     
     B = 100L,

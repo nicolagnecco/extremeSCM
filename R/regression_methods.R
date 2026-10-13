@@ -16,7 +16,7 @@ ranger_reg_method <- function(X, y,
   m <- ranger::ranger(
     data = W, dependent.variable.name = "y",
     num.trees = num.trees, mtry = mtry, max.depth = max.depth, 
-    importance = "impurity"
+    importance = "impurity",num.threads = 1
   )
   pred_func <- function(X_new) {
     X_new <- as.matrix(X_new)
