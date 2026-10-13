@@ -15,6 +15,13 @@ set_config <- function(){
     B = 100L,
     allmethods = TRUE,
     
+    
+    # PC settings, used by run_exp_river_pc() only (X-PC, Exp 1):
+    # forbid_marginal: PCM/HSIC never accept S = {} (as the extremal test);
+    # m_max: largest conditioning set PC tries (Inf = no limit)
+    pc = list(forbid_marginal = TRUE, m_max = Inf),
+    
+    
     datasets = list(
       "dataset-1" = 12:1,
       "dataset-2" = c(22:20, 7:1),

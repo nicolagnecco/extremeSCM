@@ -17,6 +17,16 @@ experiments <- list(
     out_dir = "output/river-exp",
     data_files = river_data_files
   ),
+  
+  # Extremal PC with the extremal CI test vs PCM vs HSIC (X-PC, Exp 1).
+  # Same config and set_params_fn as "river-exp": same subsamples per task.
+  "river-pc" = list(
+    config = "configs/config-sec6-river_experiment.R",
+    set_params_fn = "make_params_exp_river",
+    sim_fn = "run_exp_river_pc",
+    out_dir = "output/river-pc",
+    data_files = river_data_files
+  ),
 
   # Extremal Pruning vs QTree vs CausEV, order known (EP, Exp 2)
   "river-bench" = list(

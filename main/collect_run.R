@@ -22,6 +22,13 @@ if ("station_info" %in% names(out$extras)) {
   out$extras$station_info <- NULL
 }
 
+# Estimated graphs as adjacency matrices (run_exp_river_pc): one tibble
+if ("graphs" %in% names(out$extras)) {
+  out$graphs <- dplyr::bind_rows(out$extras$graphs)
+  out$extras$graphs <- NULL
+}
+
+
 # Checks for runs with several methods per (dataset, repetition)
 if (all(c("subsample_idx", "dataset", "repetitions") %in% names(out$extras))) {
   same <- out$extras %>%
