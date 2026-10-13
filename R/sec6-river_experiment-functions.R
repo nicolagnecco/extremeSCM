@@ -47,7 +47,8 @@ make_params_exp_river <- function(config) {
       simulated = config$simulated,
       subsample_mode = config$subsample_mode,
       subsample_prop = config$subsample_prop,
-      declustered = config$declustered
+      declustered = config$declustered,
+      pc_settings = list(config$pc)   # used by run_exp_river_pc() only
     ) %>%
     dplyr::relocate(task_id)
   
