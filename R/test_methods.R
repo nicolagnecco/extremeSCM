@@ -13,7 +13,7 @@ test_method_resit <- function(Y, X, Z, reg_method){
   eps <- Y - pred_func(Z)
   
   # test whether residuals r are independent of [Z, X] and return p-value
-  dHSIC::dhsic.test(eps, cbind(Z, X), method = "permutation", B = 100)$p.value
+  dHSIC::dhsic.test(eps, cbind(Z, X), method = "gamma")$p.value
   
 }
 

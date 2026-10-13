@@ -9,7 +9,7 @@ set_config <- function(){
     
     taus = c(0.9, 0.95, 0.975),
     taus_other_methods = c(0.0, 0.9, 0.95, 0.975),
-    alphas = c(0.01, 0.05),
+    alphas = c(0.005, 0.01, 0.05),
     log_transform = TRUE,
     
     B = 100L,
