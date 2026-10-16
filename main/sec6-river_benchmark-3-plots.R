@@ -1,24 +1,25 @@
-# Metrics and plots for Exp 2 on the declustered Danube data:
-#   EP column:   Extremal Pruning vs QTree vs CausEV, order known  (river-bench)
-#   X-PC column: Extremal PC vs QTree vs CausEV, no order          (river-bench-noorder)
+# Plots for Exp 2 on the declustered Danube data:
+#   order known: Extremal Pruning vs QTree vs CausEV, SHD           (river-bench)
+#   no order:    Extremal PC vs QTree vs CausEV, skeleton SHD       (river-bench-noorder)
+# Mean error over the subsamples against tau, with a +/- 1 SD band (the
+# subsamples overlap, so the SE would understate the spread). QTree and CausEV
+# have no tau / alpha grid and appear as horizontal reference lines.
 # Run from the project root after main/collect_run.R on both run directories.
 
 source("main/load_packages.R")
 
 run_dirs <- c(
-  order   = "output/river-bench/YYYYMMDD_HHMMSS",
-  noorder = "output/river-bench-noorder/YYYYMMDD_HHMMSS"
+  order   = "output/river-bench/20261013_172238/",
+  noorder = "output/river-bench-noorder/20261013_184931/"
 )
-# Headline setting for EP and X-PC, fixed by rule (k ~ 50-100 exceedances of
-# the ~321 events per subsample); the full grid goes to the supplement.
-headline <- list(tau = 0.8, alpha = 0.01)
 out_dir <- "output/river-bench-figures"
-recompute <- FALSE        # TRUE to recompute metrics.rds in the run directories
+recompute <- TRUE        # TRUE to recompute metrics.rds in the run directories
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 
 # Metrics (cached as metrics.rds in each run directory) -------------------
+# evaluate_bench_run() also recovers graphs without edges.
 
 metrics <- purrr::imap_dfr(run_dirs, function(run_dir, setting) {
   f <- file.path(run_dir, "metrics.rds")
@@ -31,138 +32,99 @@ metrics <- purrr::imap_dfr(run_dirs, function(run_dir, setting) {
   mutate(m, setting = setting)
 })
 
-method_levels <- c("Extremal Pruning", "Extremal PC", "QTree", "CausEV")
-method_colors <- c("Extremal Pruning" = my_palette$blue,
-                   "Extremal PC" = my_palette$blue,
-                   "QTree" = "#707070", "CausEV" = "#B0B0B0")
-
+# One metric per setting: with the order known every method returns a DAG
+# that respects it, so SHD = extra + missing edges; without the order, the
+# skeleton SHD compares CPDAGs and DAGs fairly.
 metrics <- metrics %>%
-  mutate(method = factor(method, levels = method_levels),
+  mutate(value = if_else(setting == "order", shd, skel_shd),
          dataset_lab = paste0(dataset, " (d = ", d, ")"))
 
-headline_dat <- metrics %>%
-  filter(is.na(tau) | (tau == headline$tau & alpha == headline$alpha))
+
+# Summary: mean and SD per setting ----------------------------------------
+
+summary_tbl <- metrics %>%
+  group_by(setting, dataset, dataset_lab, d, method, tau, alpha) %>%
+  summarise(mean = mean(value), sd = sd(value), n = n(), .groups = "drop")
+print(summary_tbl, n = Inf, width = Inf)
+write_csv(summary_tbl, file.path(out_dir, "exp2-summary.csv"))
 
 
-# Summary tables (headline setting) ---------------------------------------
+# Plot ----------------------------------------------------------------------
 
-summary_order <- headline_dat %>%
-  filter(setting == "order") %>%
-  group_by(dataset, d, method) %>%
-  summarise(shd = mean(shd), extra = mean(skel_fp), missing = mean(skel_fn),
-            .groups = "drop")
+alpha_colors <- c("#6BAED6", "#2171B5", "#08306B")
 
-summary_noorder <- headline_dat %>%
-  filter(setting == "noorder") %>%
-  group_by(dataset, d, method) %>%
-  summarise(skel_shd = mean(skel_shd), extra = mean(skel_fp),
-            missing = mean(skel_fn), correct_dir = mean(n_correct_dir),
-            wrong_dir = mean(n_wrong_dir), undirected = mean(n_undirected),
-            sid_lower = mean(sid_lower / (d * (d - 1))), .groups = "drop")
-
-print(summary_order, n = Inf, width = Inf)
-print(summary_noorder, n = Inf, width = Inf)
-write_csv(summary_order, file.path(out_dir, "summary-ep-order.csv"))
-write_csv(summary_noorder, file.path(out_dir, "summary-xpc-noorder.csv"))
-
-
-# Plot helpers ------------------------------------------------------------
-
-box_by_dataset <- function(dat, metric, ylab) {
-  ggplot(dat, aes(x = method, y = .data[[metric]], color = method)) +
-    facet_wrap(~ dataset_lab, nrow = 2, scales = "free_y") +
-    geom_boxplot(alpha = .5, size = .65, fatten = 1.25) +
-    scale_color_manual(values = method_colors, drop = TRUE) +
-    scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)),
-                       limits = c(0, NA)) +
-    labs(y = ylab, color = "Method") +
-    theme(axis.title.x = element_blank(), axis.text.x = element_blank(),
-          axis.ticks.x = element_blank())
-}
-
-
-# EP column: order known, SHD = extra + missing edges ---------------------
-
-gg_order <- box_by_dataset(filter(headline_dat, setting == "order"),
-                           "shd", "Structural Hamming Distance")
-gg_order
-save_myplot(gg_order, file.path(out_dir, "exp2-ep-order-shd.pdf"),
-            width = 2, height = 2, cairo = FALSE)
-
-
-# X-PC column: no order, skeleton SHD -------------------------------------
-
-gg_noorder <- box_by_dataset(filter(headline_dat, setting == "noorder"),
-                             "skel_shd", "Skeleton SHD")
-gg_noorder
-save_myplot(gg_noorder, file.path(out_dir, "exp2-xpc-noorder-skeleton-shd.pdf"),
-            width = 2, height = 2, cairo = FALSE)
-
-
-# X-PC column: orientation of the true edges ------------------------------
-# Share of the d - 1 true edges found with the right direction, the reversed
-# direction, undirected, or missed. On a chain, PC cannot orient anything.
-
-orient_dat <- headline_dat %>%
-  filter(setting == "noorder") %>%
-  mutate(undirected_true = (d - 1) - skel_fn - n_correct_dir - n_wrong_dir) %>%
-  group_by(dataset_lab, d, method) %>%
-  summarise(Correct = mean(n_correct_dir), Reversed = mean(n_wrong_dir),
-            Undirected = mean(undirected_true), Missing = mean(skel_fn),
-            .groups = "drop") %>%
-  pivot_longer(Correct:Missing, names_to = "status", values_to = "count") %>%
-  mutate(share = count / (d - 1),
-         status = factor(status, levels = c("Correct", "Reversed",
-                                            "Undirected", "Missing")))
-
-gg_orient <- ggplot(orient_dat, aes(x = method, y = share, fill = status)) +
-  facet_wrap(~ dataset_lab, nrow = 2) +
-  geom_col(width = .7) +
-  scale_fill_manual(values = c(Correct = my_palette$green,
-                               Reversed = my_palette$red,
-                               Undirected = "#B0B0B0",
-                               Missing = "#404040")) +
-  scale_y_continuous(labels = scales::percent) +
-  labs(y = "True edges", fill = NULL) +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1))
-gg_orient
-save_myplot(gg_orient, file.path(out_dir, "exp2-xpc-noorder-orientation.pdf"),
-            width = 2, height = 2, cairo = FALSE)
-
-
-# Supplement: EP / X-PC over the (tau, alpha) grid ------------------------
-# Mean error per setting; QTree and CausEV (no tuning grid) as reference lines.
-
-grid_plot <- function(setting_, method_, metric, ylab) {
-  dat <- filter(metrics, setting == setting_)
-  ours <- dat %>%
-    filter(method == method_) %>%
-    group_by(dataset_lab, tau, alpha) %>%
-    summarise(value = mean(.data[[metric]]), .groups = "drop")
+bench_plot <- function(setting_, ours, ylab, ref_suffix = "") {
+  dat <- filter(summary_tbl, setting == setting_, 
+                (alpha > 0.005) | !grepl("Extremal", method))
+    
+  ep <- dat %>%
+    filter(method == ours) %>%
+    mutate(alpha = factor(alpha))
   refs <- dat %>%
     filter(method %in% c("QTree", "CausEV")) %>%
-    group_by(dataset_lab, method) %>%
-    summarise(value = mean(.data[[metric]]), .groups = "drop")
-
-  ggplot(ours, aes(x = tau, y = value, color = factor(alpha))) +
+    mutate(method = factor(paste0(method, ref_suffix),
+                           levels = paste0(c("QTree", "CausEV"), ref_suffix)))
+  
+  
+  gg0 <- ggplot(ep, aes(x = tau, y = mean, group = alpha)) +
     facet_wrap(~ dataset_lab, nrow = 2, scales = "free_y") +
-    geom_hline(data = refs, aes(yintercept = value, linetype = method),
-               color = "#707070") +
-    geom_line() +
-    geom_point(shape = 21, fill = "white") +
-    labs(x = TeX("$\\tau$"), y = ylab, color = TeX("$\\alpha$"),
-         linetype = NULL)
+    geom_hline(data = refs, aes(yintercept = mean, linetype = method),
+               color = "#707070", linewidth = .5) +
+    geom_ribbon(aes(ymin = pmax(mean - sd, 0), ymax = mean + sd, fill = alpha),
+                alpha = .12, color = NA) 
+  
+  
+  gg0 +
+    geom_line(aes(color = alpha), linewidth = .5) +
+    geom_point(aes(color = alpha, shape = alpha), size = 1.2) +
+    scale_color_manual(values = alpha_colors) +
+    scale_fill_manual(values = alpha_colors) +
+    scale_shape_manual(values = c(16, 17, 15)) +
+    scale_linetype_manual(values = c("dashed", "dotted")) +
+    scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)),
+                       limits = c(0, NA)) +
+    labs(x = TeX("$\\tau$"), y = ylab,
+         color = TeX(paste0(ours, ": $\\alpha$")),
+         fill = TeX(paste0(ours, ": $\\alpha$")),
+         shape = TeX(paste0(ours, ": $\\alpha$")),
+         linetype = NULL) +
+    guides(color = guide_legend(order = 1), fill = guide_legend(order = 1),
+           shape = guide_legend(order = 1), linetype = guide_legend(order = 2)) +
+    theme(legend.position = "bottom", legend.box = "horizontal")
 }
 
-gg_grid_order <- grid_plot("order", "Extremal Pruning", "shd",
-                           "Mean SHD (Extremal Pruning)")
-gg_grid_order
-save_myplot(gg_grid_order, file.path(out_dir, "exp2-ep-order-grid.pdf"),
-            width = 2.5, height = 2, cairo = FALSE)
+gg_order <- bench_plot("order", "Extremal Pruning", "Mean SHD",
+                       ref_suffix = " (order given)")
+gg_order
+save_myplot(gg_order, file.path(out_dir, "exp2-ep-order-shd.pdf"),
+            width = 2.25, height = 2.25, cairo = FALSE)
 
-gg_grid_noorder <- grid_plot("noorder", "Extremal PC", "skel_shd",
-                             "Mean skeleton SHD (Extremal PC)")
-gg_grid_noorder
-save_myplot(gg_grid_noorder, file.path(out_dir, "exp2-xpc-noorder-grid.pdf"),
-            width = 2.5, height = 2, cairo = FALSE)
+gg_noorder <- bench_plot("noorder", "Extremal PC", "Mean skeleton SHD")
+gg_noorder
+save_myplot(gg_noorder, file.path(out_dir, "exp2-xpc-noorder-skeleton-shd.pdf"),
+            width = 2.25, height = 2.25, cairo = FALSE)
+
+# Boxplot at alpha = 0.05 and tau = 0.8
+dat_main <- metrics %>%
+  filter(setting == "noorder",
+         is.na(tau) | (dplyr::near(tau, 0.8) & dplyr::near(alpha, 0.05))) %>%
+  mutate(value_normalized = value / (d - 1)) %>% 
+  mutate(method = factor(method, levels = c("Extremal PC", "QTree", "CausEV")))
+
+gg_main <- ggplot(dat_main, aes(x = method, y = value_normalized, 
+                                color = method, fill = method)) +
+  facet_wrap(~ dataset_lab, nrow = 2) +
+  geom_hline(aes(yintercept = 1), linetype = "dashed",
+             color = "#707070", linewidth = .4) +
+  geom_jitter(position = position_jitter(width = .2, height = 0, seed = 1),
+              size = .5, alpha = .3, show.legend = FALSE) +
+  geom_boxplot(alpha = .25, linewidth = .5, width = .7, outlier.shape = NA) +
+  scale_color_manual(values = c("#2171B5", "#707070", "#B0B0B0")) +
+  scale_fill_manual(values = c("#2171B5", "#707070", "#B0B0B0")) +
+  scale_x_discrete(labels = c("Extremal PC" = "Extremal PC", QTree = "QTree", CausEV = "CausEV")) +
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
+  labs(y = "Normalized skeleton SHD") +
+  theme(axis.title.x = element_blank(), legend.position = "none")
+gg_main
+save_myplot(gg_main, file.path(out_dir, "exp2-xpc-noorder-main.pdf"),
+            width = 2, height = 2, cairo = FALSE)

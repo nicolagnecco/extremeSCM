@@ -32,7 +32,7 @@ my_palette_vibrant <- list(
 )
 
 lst_methods <- list(
-  "mp" = "'(a) MPD'",
+  "mp" = "'(a) HR'",
   "ms" = "'(b) Max-stable'",
   "scm" = "'(c) Extremal-SCM'"
 )

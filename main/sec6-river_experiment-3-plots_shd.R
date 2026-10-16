@@ -1,144 +1,156 @@
-# Plots for the river experiment (Extremal Pruning with the extremal CI test vs
-# PCM vs HSIC). Run from the project root after sec6-river_experiment-2-collect_run.R.
+# Plots for EP, Exp 1 on the full Danube data: Extremal Pruning with the
+# extremal CI test vs pruning with PCM vs pruning with HSIC (run "river-exp").
+# Same layout as sec6-river_pc-3-plots.R (X-PC, Exp 1).
+# Run from the project root after main/collect_run.R.
 
 source("main/load_packages.R")
 
-run_dir <- "output/river-exp/20261007_165615"
-alpha_plot <- 0.01                      # significance level shown in the figure
-metric_plot <- "SHD Normalized"         # one of the labels in `metric_labels`
-plotname <- file.path(run_dir, paste0("rivers", 
-                                      "-alpha=", alpha_plot, 
-                                      "-metric=", metric_plot, ".pdf"))
+run_dir <- "output/river-exp/20261013_122144"
+alpha_plot <- 0.05                  # headline level; others for the supplement
+metric_plot <- "shd"                # one of names(metric_labels)
+
+
+short_lab <- function(x) {
+  x <- sub("^Extremal (Pruning|PC), tau = ", "tau == ", x)
+  x <- sub(", all data$", "", x)
+  parse(text = x)
+}
+
+# Metrics -----------------------------------------------------------------
+# All outputs are subgraphs of the complete DAG on the true order, so no edge
+# can be reversed and SHD = extra + missing edges. Pruning keeps at least one
+# parent per node, so no estimated graph is empty and the edge table suffices.
 
 loaded <- read_rds(file.path(run_dir, "results.rds"))
-graphs <- loaded$results
 
-
-# Evaluate graphs ---------------------------------------------------------
-# One row per estimated graph. A graph is identified by its task and, within a
-# task, by (method, tau); alpha is fixed within a task in this experiment.
-
-edges_to_adj <- function(tbl, nodes) {
+edges_to_adj <- function(from, to, nodes) {
   A <- matrix(0, length(nodes), length(nodes), dimnames = list(nodes, nodes))
-  A[cbind(tbl$from, tbl$to)] <- 1
+  if (length(from) > 0) A[cbind(from, to)] <- 1
   A
 }
 
-res <- graphs %>%
+res <- loaded$results %>%
   group_by(task_id) %>%
   group_split() %>%
-  map_dfr(function(tbl) {
-    true_edges <- tbl %>% filter(method == "true") %>% distinct(from, to)
+  purrr::map_dfr(function(tbl) {
+    true_edges <- filter(tbl, method == "true")
     nodes <- unique(c(true_edges$from, true_edges$to))
-    g_true <- edges_to_adj(true_edges, nodes)
-
+    A_true <- edges_to_adj(true_edges$from, true_edges$to, nodes)
+    
     tbl %>%
-      filter(method != "true") %>%
+      filter(!method %in% c("true", "full")) %>%
       group_by(method, tau) %>%
       group_split() %>%
-      map_dfr(function(m) {
-        g_est <- edges_to_adj(distinct(m, from, to), nodes)
-        shd <- SID::hammingDist(g_true, g_est)
+      purrr::map_dfr(function(m) {
+        A <- edges_to_adj(m$from, m$to, nodes)
         tibble(
-          task_id = unique(m$task_id),
-          method = unique(m$method),
-          tau = unique(m$tau),
-          alpha = unique(m$alpha),
-          log_transform = unique(m$log_transform),
-          dataset = unique(m$dataset),
-          bootstrap_rep = unique(m$bootstrap_rep),
+          task_id = m$task_id[1], dataset = m$dataset[1],
+          bootstrap_rep = m$bootstrap_rep[1], alpha = m$alpha[1],
+          method = m$method[1], tau = m$tau[1], k = m$k[1],
           d = length(nodes),
-          shd = shd,
-          shd_normalized = shd / (length(nodes) - 1),
-          fp = sum(g_est == 1 & g_true == 0),
-          fn = sum(g_est == 0 & g_true == 1)
+          fp = sum(A == 1 & A_true == 0),
+          fn = sum(A == 0 & A_true == 1),
+          shd = fp + fn
         )
       })
   })
 
 write_rds(res, file.path(run_dir, "metrics.rds"))
 
+metric_labels <- c(shd = "SHD", fp = "Extra edges", fn = "Missing edges")
+method_levels <- c("Extremal Pruning", "PCM", "HSIC")
+method_colors <- c(my_palette$blue, "#707070", "#B0B0B0")
 
-# Plot: methods side by side, one panel per (dataset) ---------------
-# Goal: Compare extremal conditional indpendence test with non-extremal ones
-res_exp <- res
-res <- res_exp
-metric_labels <- c(shd = "SHD", fp = "False Positives", fn = "False Negatives",
-                   shd_normalized = "SHD Normalized")
-
-metric_plot <- "SHD"        
+res <- res %>%
+  mutate(method = factor(method, levels = method_levels),
+         dataset_lab = paste0(dataset, " (d = ", d, ")"))
 
 
-dat2plot <- res %>% 
-  filter(method != "full", alpha == alpha_plot, log_transform) %>% 
-  filter(
-   (tau == 0 & method != "Extremal Pruning") |
-     (tau %in% c(0.95, 0.96, 0.97, 0.98) & method == "Extremal Pruning")
-  ) %>% 
-  mutate(method = if_else(method == "Extremal Pruning",
-                          paste0("Extremal Pruning - tau = ", tau),
-                          method)) %>% pivot_longer(cols = names(metric_labels), names_to = "metric_name",
-                                                    values_to = "metric") %>%
-  mutate(metric_name = factor(metric_name, levels = names(metric_labels),
-                              labels = metric_labels)) %>%
-  filter(metric_name == metric_plot)
+# Summary table -------------------------------------------------------------
+
+summary_tbl <- res %>%
+  group_by(alpha, dataset, d, method, tau) %>%
+  summarise(k = mean(k), across(c(shd, fp, fn), mean), .groups = "drop")
+print(filter(summary_tbl, alpha == alpha_plot), n = Inf, width = Inf)
+write_csv(summary_tbl, file.path(run_dir, "summary.csv"))
 
 
-labels_legend <- unname(TeX(c(
-  "Extremal Pruning - $\\tau = 0.95$",
-  "Extremal Pruning - $\\tau = 0.96$",
-  "Extremal Pruning - $\\tau = 0.97$",
-  "Extremal Pruning - $\\tau = 0.98$",
-  "dHSIC", 
-  "PCM")))
+# Plot 1: extremal test on exceedances vs PCM / HSIC on all data ----------
 
-ggplot(dat2plot, aes(x = method, y = metric, color = method)) +
-  facet_wrap(~ dataset, nrow = 2, scales = "free_y") +
-  geom_boxplot(alpha = .5, size = .65, fatten = 1.25) +
-  # scale_color_manual(values = c(my_palette$blue, "#707070", "#B0B0B0")) +
-  scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)),
-                     limits = c(0, NA)) +
-  labs(y = metric_plot, color = "Method") +
+dat_all <- res %>%
+  filter(alpha == alpha_plot,
+         (method == "Extremal Pruning") | (method != "Extremal Pruning" & tau == 0)) %>%
+  mutate(label = if_else(method == "Extremal Pruning",
+                         paste0("Extremal Pruning, tau = ", tau),
+                         paste0(method, ", all data")))
+
+tau_lab <- function(t) sprintf("%s, tau = %s", levels(res$method)[1], t)
+col_pal <- c("#D55E00","#0072B2", "#009E73")
+dat_all <- dat_all %>%
+  mutate(label = factor(label, levels = c(tau_lab(sort(unique(tau[tau > 0]))),
+                                          paste0(c("PCM", "HSIC"), ", all data"))))
+
+
+gg_all <- ggplot(dat_all, aes(x = label, y = .data[[metric_plot]],
+                              color = label, fill = label)) +
+  facet_wrap(~ dataset_lab, nrow = 2, scales = "free_y") +
+  geom_jitter(width = .2, height = 0, size = .5, alpha = .3,
+              show.legend = FALSE) +
+  geom_boxplot(alpha = .25, linewidth = .5, width = .7,
+               outlier.shape = NA) +
+  scale_color_manual(values = c(col_pal, "#707070", "#B0B0B0"), name = NULL) +
+  scale_fill_manual(values = c(col_pal, "#707070", "#B0B0B0"), name = NULL) +
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
+  labs(y = metric_labels[[metric_plot]]) +
+  scale_x_discrete(labels = short_lab) +
   theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.text.x = element_text(size = 7, angle = 45, hjust = 1),
+        legend.position = "none")
+gg_all
+save_myplot(gg_all, file.path(run_dir, paste0("river-exp-alldata-alpha=", alpha_plot,
+                                              "-", metric_plot, ".pdf")),
+            width = 2, height = 2, cairo = FALSE)
 
 
-# Plot: methods side by side, one panel per (dataset, tau) ---------------
-# Goal: Sample-matched analysis
-# EP uses `taus`; PCM and HSIC use `taus_other`, which also contains 0 (all
-# data). Only the taus run by every method are shown.
-taus_common <- res %>%
-  filter(method != "full", tau > 0) %>%
-  distinct(method, tau) %>%
-  count(tau) %>%
-  filter(n == n_distinct(res$method[res$method != "full"])) %>%
-  pull(tau)
+# Plot 2: sample-matched comparison, one panel per (dataset, tau) ---------
+dat_matched_ <- res %>%
+  filter(alpha == alpha_plot, tau > 0)
 
-dat2plot <- res %>%
-  filter(method != "full", alpha == alpha_plot, log_transform,
-         tau %in% taus_common) %>%
-  pivot_longer(cols = names(metric_labels), names_to = "metric_name",
-               values_to = "metric") %>%
-  mutate(metric_name = factor(metric_name, levels = names(metric_labels),
-                              labels = metric_labels),
-         method = factor(method, levels = c("Extremal Pruning", "PCM", "HSIC"),
-                         labels = c("Extremal Pruning", "PCM", "dHSIC"))) %>%
-  filter(metric_name == metric_plot)
+ext <- levels(res$method)[1]                     # "Extremal Pruning" / "Extremal PC"
+taus_m <- sort(unique(dat_matched_$tau))
 
-gg <- ggplot(dat2plot, aes(x = method, y = metric, color = method)) +
-  facet_grid(dataset ~ factor(tau), scales = "free_y") +
-  geom_boxplot(alpha = .5, size = .65, fatten = 1.25) +
-  scale_color_manual(values = c(my_palette$blue, "#707070", "#B0B0B0")) +
-  scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)),
-                     limits = c(0, NA)) +
-  labs(y = metric_plot, color = "Method") +
+dat_matched <- dat_matched_ %>%
+  mutate(col_key = if_else(method == ext,
+                           paste0(ext, ", tau = ", tau),
+                           paste0(method, ", size-matched")),
+         col_key = factor(col_key,
+                          levels = c(paste0(ext, ", tau = ", taus_m),
+                                     paste0(c("PCM", "HSIC"), ", size-matched")))) %>% 
+  mutate(tau_lab = texify_column(tau, "\\tau"),
+         tau_lab = forcats::fct_reorder(tau_lab, tau))
+
+col_vals <- setNames(c(col_pal[seq_along(taus_m)], "#707070", "#B0B0B0"),
+                     levels(dat_matched$col_key))
+
+gg_matched <- ggplot(dat_matched,
+                     aes(x = method, y = .data[[metric_plot]],
+                         color = col_key, fill = col_key)) +
+  facet_grid(dataset_lab ~ tau_lab, scales = "free_y",
+             labeller = labeller(tau_lab = label_parsed,
+                                 dataset_lab = label_value)) +
+  geom_jitter(position = position_jitter(width = .2, height = 0, seed = 1),
+              size = .4, alpha = .3, show.legend = FALSE) +
+  geom_boxplot(alpha = .25, linewidth = .5, width = .7, outlier.shape = NA) +
+  scale_color_manual(values = col_vals, name = NULL) +
+  scale_fill_manual(values = col_vals, name = NULL) +
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
+  labs(y = metric_labels[[metric_plot]]) +
+  scale_x_discrete(labels = c(setNames(if (ext == "Extremal PC") "X-PC" else "EP", ext),
+                              PCM = "PCM", HSIC = "HSIC")) +
   theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
-gg
-
-save_myplot(gg, plotname, width = 2, height = 2, cairo = FALSE)
-
-
-
+        axis.text.x = element_text(size = 7),
+        legend.position = "none")
+gg_matched
+save_myplot(gg_matched, file.path(run_dir, paste0("river-exp-matched-alpha=", alpha_plot,
+                                                  "-", metric_plot, ".pdf")),
+            width = 1.5, height = 1.5, cairo = FALSE)

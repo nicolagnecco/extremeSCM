@@ -15,7 +15,7 @@ set_config <- function(){
       ## Extremal PC (Algorithm 1)
       "Extremal PC" = list(
         params_iter = list(
-          taus = c(0.7, 0.8, 0.9),
+          taus = c(0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
           alpha = c(0.005, 0.01, 0.05))
       ),
       ## QTree (Tran, Buck & Klueppelberg, 2024), auto-tuned as in their Section 4
