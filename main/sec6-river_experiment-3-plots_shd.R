@@ -79,7 +79,8 @@ write_csv(summary_tbl, file.path(run_dir, "summary.csv"))
 
 dat_all <- res %>%
   filter(alpha == alpha_plot,
-         (method == "Extremal Pruning") | (method != "Extremal Pruning" & tau == 0)) %>%
+  (method == "Extremal Pruning") | (method != "Extremal Pruning" & tau == 0)) %>%
+  mutate(method = if_else(method == "HSIC", "dHSIC", method)) %>%
   mutate(label = if_else(method == "Extremal Pruning",
                          paste0("Extremal Pruning, tau = ", tau),
                          paste0(method, ", all data")))
@@ -88,7 +89,7 @@ tau_lab <- function(t) sprintf("%s, tau = %s", levels(res$method)[1], t)
 col_pal <- c("#D55E00","#0072B2", "#009E73")
 dat_all <- dat_all %>%
   mutate(label = factor(label, levels = c(tau_lab(sort(unique(tau[tau > 0]))),
-                                          paste0(c("PCM", "HSIC"), ", all data"))))
+                                          paste0(c("PCM", "dHSIC"), ", all data"))))
 
 
 gg_all <- ggplot(dat_all, aes(x = label, y = .data[[metric_plot]],
@@ -145,8 +146,8 @@ gg_matched <- ggplot(dat_matched,
   scale_fill_manual(values = col_vals, name = NULL) +
   scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
   labs(y = metric_labels[[metric_plot]]) +
-  scale_x_discrete(labels = c(setNames(if (ext == "Extremal PC") "X-PC" else "EP", ext),
-                              PCM = "PCM", HSIC = "HSIC")) +
+  scale_x_discrete(labels = c(setNames(if (ext == "Extremal PC") "Extr. PC" else "EP", ext),
+                              PCM = "PCM", HSIC = "dHSIC")) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_text(size = 7),
         legend.position = "none")
@@ -154,3 +155,4 @@ gg_matched
 save_myplot(gg_matched, file.path(run_dir, paste0("river-exp-matched-alpha=", alpha_plot,
                                                   "-", metric_plot, ".pdf")),
             width = 1.5, height = 1.5, cairo = FALSE)
+

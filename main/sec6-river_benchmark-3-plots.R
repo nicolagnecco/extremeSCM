@@ -121,10 +121,14 @@ gg_main <- ggplot(dat_main, aes(x = method, y = value_normalized,
   geom_boxplot(alpha = .25, linewidth = .5, width = .7, outlier.shape = NA) +
   scale_color_manual(values = c("#2171B5", "#707070", "#B0B0B0")) +
   scale_fill_manual(values = c("#2171B5", "#707070", "#B0B0B0")) +
-  scale_x_discrete(labels = c("Extremal PC" = "Extremal PC", QTree = "QTree", CausEV = "CausEV")) +
+  scale_x_discrete(labels = c("Extremal PC" = "Extr. PC", QTree = "QTree", CausEV = "CausEV")) +
   scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
   labs(y = "Normalized skeleton SHD") +
-  theme(axis.title.x = element_blank(), legend.position = "none")
+  theme(axis.title.x = element_blank(), legend.position = "none") +
+  theme(
+    text = element_text(size = 8),
+    axis.text.x = element_text(size = 6)
+  )
 gg_main
 save_myplot(gg_main, file.path(out_dir, "exp2-xpc-noorder-main.pdf"),
-            width = 2, height = 2, cairo = FALSE)
+            width = 1, height = 1, cairo = FALSE)

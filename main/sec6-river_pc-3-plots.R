@@ -80,6 +80,7 @@ write_csv(summary_tbl, file.path(run_dir, "summary.csv"))
 dat_all <- res %>%
   filter(alpha == alpha_plot,
          (method == "Extremal PC") | (method != "Extremal PC" & tau == 0)) %>%
+  mutate(method = if_else(method == "HSIC", "dHSIC", method)) %>% 
   mutate(label = if_else(method == "Extremal PC",
                          paste0("Extremal PC, tau = ", tau),
                          paste0(method, ", all data")))
@@ -88,7 +89,7 @@ tau_lab <- function(t) sprintf("%s, tau = %s", levels(res$method)[1], t)
 col_pal <- c("#D55E00","#0072B2", "#009E73")
 dat_all <- dat_all %>%
   mutate(label = factor(label, levels = c(tau_lab(sort(unique(tau[tau > 0]))),
-                                          paste0(c("PCM", "HSIC"), ", all data"))))
+                                          paste0(c("PCM", "dHSIC"), ", all data"))))
 
 
 gg_all <- ggplot(dat_all, aes(x = label, y = .data[[metric_plot]],
@@ -107,7 +108,7 @@ gg_all <- ggplot(dat_all, aes(x = label, y = .data[[metric_plot]],
         axis.text.x = element_text(size = 7, angle = 45, hjust = 1),
         legend.position = "none")
 gg_all
-save_myplot(gg_all, file.path(run_dir, paste0("river-pc-alldata-alpha=", alpha_plot,
+save_myplot(gg_all, file.path(run_dir, paste0("_river-pc-alldata-alpha=", alpha_plot,
                                               "-", metric_plot, ".pdf")),
             width = 2, height = 2, cairo = FALSE)
 
@@ -146,13 +147,13 @@ gg_matched <- ggplot(dat_matched,
   scale_fill_manual(values = col_vals, name = NULL) +
   scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
   labs(y = metric_labels[[metric_plot]]) +
-  scale_x_discrete(labels = c(setNames(if (ext == "Extremal PC") "X-PC" else "EP", ext),
-                              PCM = "PCM", HSIC = "HSIC")) +
+  scale_x_discrete(labels = c(setNames(if (ext == "Extremal PC") "Extr. PC" else "EP", ext),
+                              PCM = "PCM", HSIC = "dHSIC")) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_text(size = 7),
         legend.position = "none")
 gg_matched
-save_myplot(gg_matched, file.path(run_dir, paste0("river-pc-matched-alpha=", alpha_plot,
+save_myplot(gg_matched, file.path(run_dir, paste0("_river-pc-matched-alpha=", alpha_plot,
                                                   "-", metric_plot, ".pdf")),
             width = 1.5, height = 1.5, cairo = FALSE)
 
@@ -172,13 +173,16 @@ gg_main <- ggplot(dat_main, aes(x = method, y = value,
   geom_boxplot(alpha = .25, linewidth = .5, width = .7, outlier.shape = NA) +
   scale_color_manual(values = c(col_pal[2], "#707070", "#B0B0B0")) +
   scale_fill_manual(values = c(col_pal[2], "#707070", "#B0B0B0")) +
-  scale_x_discrete(labels = c("Extremal PC" = "Extremal PC", PCM = "PCM", HSIC = "HSIC")) +
+  scale_x_discrete(labels = c("Extremal PC" = "Extr. PC", PCM = "PCM", HSIC = "dHSIC")) +
   scale_y_continuous(breaks = pretty(c(0, 2), 12)) +
   # scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits = c(0, NA)) +
   labs(y = metric_labels[[metric_plot]]) +
-  theme(axis.title.x = element_blank(), legend.position = "none") +
+  theme(axis.title.x = element_blank(), 
+        text = element_text(size = 8),
+        axis.text.x = element_text(size = 6),
+        legend.position = "none") +
   labs(y = "Normalized skeleton SHD")
 gg_main
-save_myplot(gg_main, file.path(run_dir, "river-pc-main-tau0.975.pdf"),
-            width = 2, height = 2, cairo = FALSE)
-   
+save_myplot(gg_main, file.path(run_dir, "_river-pc-main-tau0.975.pdf"),
+            width = 1, height = 1, cairo = FALSE)
+
