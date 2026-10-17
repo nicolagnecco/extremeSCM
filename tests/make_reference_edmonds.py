@@ -47,7 +47,7 @@ with open(f"{REF}/edmonds-random.json", "w") as f:
     json.dump({"matrices": [np.where(np.isnan(W), None, W).tolist() for W in mats],
                "costs": costs}, f)
 
-# 2. Real QTree score matrices: the package's unrestricted root-directed tree
+# 2. Real QTree score matrices: the package's unrestricted sink-directedy tree
 #    (spanTree, as in QTree.fit) and its total score
 qtree = []
 for dataset in ("dataset-1", "dataset-6"):

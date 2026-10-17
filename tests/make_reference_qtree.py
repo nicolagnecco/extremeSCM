@@ -45,7 +45,7 @@ def brute_force_tree(S):
 
 
 def edmonds_restricted(S, kind):
-    """Optimal root-directed tree using only edges i -> j with i < j, via
+    """Optimal sink-directed tree using only edges i -> j with i < j, via
     networkx's Edmonds algorithm (same reversal trick as the package's spanTree)."""
     d = S.shape[0]
     G = nx.DiGraph()

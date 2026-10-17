@@ -1,6 +1,6 @@
 build_root_directed_tree <- function(S, order, type = c("min", "max")){
   ## numeric.matrix integer.vector|NULL character -> numeric.matrix
-  ## produces the root-directed tree using
+  ## produces the sink-directed tree using
   ## - order_restricted_tree: if `order` is integer.vector
   ## - liu_chu_edmonds_tree: if `order` is NULL
   type <- match.arg(type)
@@ -13,7 +13,7 @@ build_root_directed_tree <- function(S, order, type = c("min", "max")){
 
 chu_liu_edmonds_tree_slow <- function(S, type = c("min", "max")) {
   ## numeric.matrix character -> numeric.matrix
-  ## produces the root-directed minimum/maximum spanning tree
+  ## produces the sink-directed minimum/maximum spanning tree
   ## given the score matrix S, where S[i, j] is the weight of edge i -> j
   ## Note: root here denotes the unique note with no children. All other
   ## nodes have exactly one child
@@ -42,14 +42,14 @@ chu_liu_edmonds_tree_slow <- function(S, type = c("min", "max")) {
 
 chu_liu_edmonds_tree <- function(S, type = c("min", "max")) {
   ## numeric.matrix character -> numeric.matrix
-  ## produces the root-directed minimum/maximum spanning tree
+  ## produces the sink-directed minimum/maximum spanning tree
   ## given the score matrix S, where S[i, j] is the weight of edge i -> j
   ## Note: root here denotes the unique note with no children. All other
   ## nodes have exactly one child
   type <- match.arg(type)
   nm <- dimnames(S)
   if (type == "max") S <- -S
-  A <- t(min_arborescence_any_root(t(S)))   # root-directed = reversed arborescence
+  A <- t(min_arborescence_any_root(t(S)))   # sink-directed = reversed arborescence
   dimnames(A) <- nm
   A
 }
@@ -183,7 +183,7 @@ is_rooted_directed_tree <- function(A, r){
 
 order_restricted_tree <- function(S, order, type = c("min", "max")) {
   ## numeric.matrix integer.vector character -> numeric.matrix
-  ## produces the order-restricted root-directed spanning tree from a score
+  ## produces the order-restricted sink-directed spanning tree from a score
   ## matrix S.
   ## `type = "min"` for QTree scores, `"max"` for agreement counts (centroid).
   type <- match.arg(type)

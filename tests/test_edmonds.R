@@ -76,7 +76,7 @@ for (k in seq_along(ref$costs)) {
 message("All ", length(ref$costs), " networkx checks passed (random graphs, d <= 12).")
 
 # 4. Real QTree score matrices: same total score as the QTree package's own
-#    unrestricted tree (spanTree in QTree.fit). Root-directed tree = arborescence
+#    unrestricted tree (spanTree in QTree.fit). Sink-directed tree = arborescence
 #    of the reversed graph, hence t(S).
 qref <- jsonlite::read_json("tests/reference/edmonds-qtree.json", simplifyVector = TRUE)
 for (k in seq_len(nrow(qref))) {

@@ -4,12 +4,12 @@
 ## Port of `quantileDispersion`, `QTree.fitToSamples` and `qtreeAutoSelect`
 ## from https://github.com/princengoc/qtree (qtree/QTree.py and
 ## qtree/qtreeAutoSelect.py). Differences from the Python package:
-##   - the root-directed spanning tree gives the option to use as starting point
+##   - the sink-directed spanning tree gives the option to use as starting point
 ##     an ancestral graph according to `order`.
-##     - when `order` is provided: the minimum root-directed spanning tree is
+##     - when `order` is provided: the minimum sink-directed spanning tree is
 ##       obtained by letting every non-root node pick its lowest/highest-score
 ##       child; the root is the last node of `order`.
-##     - when `order` is `NULL`: the minimum root-directed spanning tree is
+##     - when `order` is `NULL`: the minimum sink-directed spanning tree is
 ##       obtained via Chu-Liu/Edmonds.
 ##   - no missing-value weights (the Danube data has no missing values, and the
 ##     package's weights are constant across columns in that case).
@@ -49,7 +49,7 @@ fit_qtree_fixed <- function(X, order, q = 0.8, small_r = 0.05) {
 ## maximising the edge agreement W = mean of the adjacency matrices.
 qtree_centroid <- function(trees, order){
   ## list-of-numeric.matrix integer.vector -> numeric.matrix
-  ## produces a root-directed graph centroid
+  ## produces a sink-directed graph centroid
   W <- Reduce(`+`, trees) / length(trees)
   build_root_directed_tree(W, order, type = "max")
 }

@@ -9,7 +9,7 @@
 ## at the top level.
 ##
 ## As in Tran et al. (2024, Section 4.2), the pairwise scores are turned into a
-## root-directed tree. There are two possibilities:
+## sink-directed tree. There are two possibilities:
 ## - `order` is provided: the tree is restricted to such (causal) order,
 ##   so each non-root station picks the downstream station with the largest;
 ##   score; the root is the last node in the `order` vector.
