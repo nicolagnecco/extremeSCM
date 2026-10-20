@@ -1,0 +1,50 @@
+{
+ "small_r": 0.05,
+ "q_grid": [
+  0.7,
+  0.8,
+  0.9
+ ],
+ "cases": [
+  {
+   "dataset": "dataset-1",
+   "q": 0.7,
+   "package_tree_order_consistent": false
+  },
+  {
+   "dataset": "dataset-1",
+   "q": 0.8,
+   "package_tree_order_consistent": false
+  },
+  {
+   "dataset": "dataset-1",
+   "q": 0.9,
+   "package_tree_order_consistent": false
+  },
+  {
+   "dataset": "dataset-1",
+   "centroid_q": 0.8,
+   "var_T_package": 0.707027972027972
+  },
+  {
+   "dataset": "dataset-6",
+   "q": 0.7,
+   "package_tree_order_consistent": false
+  },
+  {
+   "dataset": "dataset-6",
+   "q": 0.8,
+   "package_tree_order_consistent": false
+  },
+  {
+   "dataset": "dataset-6",
+   "q": 0.9,
+   "package_tree_order_consistent": true
+  },
+  {
+   "dataset": "dataset-6",
+   "centroid_q": 0.8,
+   "var_T_package": 0.23384615384615384
+  }
+ ]
+}

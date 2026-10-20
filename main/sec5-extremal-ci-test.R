@@ -215,20 +215,24 @@ dat_plot <- res %>%
     tau = factor(tau, levels = sort(unique(tau))),
     method = refactor_methods(method, lst_methods)
   ) %>%
-  group_by(hyp, tau, method, vario) %>%
+  group_by(hyp, tau, method, vario, is_dsep) %>%
   summarise(pvalues = list(pvalue), .groups = "drop") %>%
   expand_grid(alpha = alphas) %>%
   mutate(
     prop_below_alpha = map2_dbl(pvalues, alpha, ~ mean(unlist(.x) <= .y))
   ) %>%
   mutate(
-    tau = texify_column(tau, "\\tau")
+    tau_labels = texify_column(tau, "\\tau")
   ) %>%
-  mutate(hyp = if_else(hyp == "H0", "Level", "Power")) %>% 
-  mutate(hyp = paste0(hyp, " (", vario, ")"))
+  mutate(hyp = if_else(hyp == "H0", "Type I Error", "Power")) %>% 
+  mutate(hyp = paste0(hyp, " (", vario, ")")) %>% 
+  mutate(hyp = factor(hyp, levels = c("Type I Error (average)", 
+                                      "Type I Error (random)", 
+                                      "Power (average)",
+                                      "Power (random)")))
 
 gg <- ggplot(dat_plot, aes(x = alpha)) +
-  facet_grid(method ~ tau, labeller = label_parsed) +
+  facet_grid(method ~ tau_labels, labeller = label_parsed) +
   geom_line(aes(y = prop_below_alpha, col = hyp, linetype = hyp)) +
   geom_line(aes(x = x, y = y),
             data = tibble(x = c(0, 1), y = c(0, 1)),
@@ -252,5 +256,38 @@ gg
 
 save_myplot(gg, 
             plt_nm = here(glue(file_name, ".pdf")), cairo = FALSE,
+            height = 1.25, 
+            width = 1.25)
+
+# select sub-plot for the main text
+dat_plot2 <- dat_plot %>% 
+  mutate(hyp = if_else(is_dsep, "Type I Error", "Power"),
+         hyp = factor(hyp, levels = c("Type I Error", "Power")))
+  
+gg <- ggplot(dat_plot2 %>% 
+               filter(tau == 0.975, vario == "average"),
+             aes(x = alpha)) +
+  facet_grid(~ method, labeller = label_parsed) +
+  geom_line(aes(y = prop_below_alpha, col = hyp, linetype = hyp)) +
+  geom_line(aes(x = x, y = y),
+            data = tibble(x = c(0, 1), y = c(0, 1)),
+            linewidth = .25, linetype = "dotted"
+  ) +
+  scale_color_manual(values = c(my_palette$blue,
+                                my_palette$red)) +
+  scale_linetype_manual(values = c("solid", "dashed", "solid", "dashed")) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1) # Tilt x-axis labels
+  ) +
+  labs(
+    x = TeX("Significance Level $\\alpha$"),
+    y = TeX("% p-values $<\\, \\alpha$"),
+    color = "", # Update legend title
+    linetype = "" # Ensures merged legend uses this title
+  )
+gg
+
+save_myplot(gg, 
+            plt_nm = here(glue(file_name, "-main.pdf")), cairo = FALSE,
             height = 1.25, 
             width = 1.25)

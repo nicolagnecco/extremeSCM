@@ -5,3 +5,7 @@
 .DS_Store
 
 output/**/*.pdf
+/output/**/
+/Readme.html
+/.venv-qtree/
+/third_party/

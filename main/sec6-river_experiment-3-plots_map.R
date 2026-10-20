@@ -17,10 +17,10 @@ station_info <- loaded_data$station_info
 estimated_graphs <- loaded_data$results %>% 
   as_tibble() %>% 
   # filter(method != "full") %>% 
-  filter(if_else(method %in% c("HSIC", "PCM", "true"), 
+  filter(if_else(method %in% c("HSIC", "PCM", "true"),
                  is.na(tau),
                  if_else(method %in% c("Extremal Pruning"),
-                         tau %in% c(0.9, .95, .975), FALSE))) %>% 
+                         tau %in% c(0.9, .95, .975), FALSE))) %>%
   mutate(method = case_when(
     method == "Extremal Pruning" ~ paste0("$\\tau=", tau, "$"),  # Correct parse format for LaTeX-style labels
     TRUE ~ method
@@ -47,8 +47,8 @@ estimated_graphs <- loaded_data$results %>%
                   )
                   ))
 
-gg <- plot_tibble(estimated_graphs) +
-  facet_grid(dataset ~ method, labeller = label_tex)
+gg <- plot_tibble(estimated_graphs %>% filter(method == "True DAG")) +
+  facet_grid(~ dataset, labeller = label_tex)
 gg
 
 save_myplot(gg, plt_nm = "output/river/river-maps.pdf", 
