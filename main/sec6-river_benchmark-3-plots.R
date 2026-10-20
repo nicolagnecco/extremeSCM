@@ -9,11 +9,11 @@
 source("main/load_packages.R")
 
 run_dirs <- c(
-  order   = "output/river-bench/20261013_172238/",
-  noorder = "output/river-bench-noorder/20261013_184931/"
+  order   = "output/river-bench/20261013_172238",
+  noorder = "output/river-bench-noorder/20261013_184931"
 )
 out_dir <- "output/river-bench-figures"
-recompute <- TRUE        # TRUE to recompute metrics.rds in the run directories
+recompute <- FALSE        # TRUE to recompute metrics.rds in the run directories
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
